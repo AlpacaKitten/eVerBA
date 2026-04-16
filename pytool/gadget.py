@@ -113,8 +113,6 @@ class Gadget(ABC, Generic[EncType]):
     def functional_correctness(self) -> bool:
         t0 = time.perf_counter()
         decoded = self.output().decode()
-        print(f"decoded {decoded}")
-        print(f"secrets {self.output().secrets}")
         for i, (r, o) in enumerate(zip(list(self.output().secrets), decoded)):
             if not r == o:
                 raise AssertionError(
