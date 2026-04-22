@@ -1498,6 +1498,7 @@ class BgwMultGadget(Gadget[PolyEnc]):
 
     def __init__(
         self,
+        # calculating f times g, each being a polyenc of grade d
         f: PolyEnc,
         g: PolyEnc,
         d: int,
@@ -1573,7 +1574,8 @@ class BgwMultGadget(Gadget[PolyEnc]):
                 f=self.f,
                 d=zenc_degree,
                 offset=0,
-                A_tilde=self.a_tilde,
+                A_tilde=self.a_tilde,                        description="degree reduction: multiply with lambda matrix (multiply two entries)",
+
                 rc=rc,
                 callloc=Location(
                     "BgwMult",

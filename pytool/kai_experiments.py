@@ -1,6 +1,6 @@
 from sage.all import GF
 from polymasking_gadgets import LaolaMultGadget
-from isw_gadgets import ISWMult, ISWSecMult, ISWSecMultLookup
+from isw_gadgets import ISWMult, AdditiveSecMult, AdditiveSecMultLookup
 
 F = GF(2**8)  # underlying field used for arithmetic
 num_worker = 1  # number of threads used during verification, crank this up for larger runs near linear speedup
@@ -50,7 +50,7 @@ def test_ISW_mult(d: int) -> None:
 def test_ISW_secmult(d: int) -> None:
 
     # for larger parameters and complex gadgets this can be expensive, laola is one of these so it is expected to slow down at around d>3, e>3, k>3.
-    isw = ISWSecMult.with_defaults(
+    isw = AdditiveSecMult.with_defaults(
         d, 1, 0, F
     )  # since ISW mult is over an additive sharing scheme it only permits k=1 and e=0
 
@@ -67,7 +67,7 @@ def test_ISW_secmult(d: int) -> None:
 def test_ISW_secmultLookup(d: int) -> None:
 
     # for larger parameters and complex gadgets this can be expensive, laola is one of these so it is expected to slow down at around d>3, e>3, k>3.
-    isw = ISWSecMultLookup.with_defaults(
+    isw = AdditiveSecMultLookup.with_defaults(
         d, 1, 0, F
     )  # since ISW mult is over an additive sharing scheme it only permits k=1 and e=0
     out = isw.output()

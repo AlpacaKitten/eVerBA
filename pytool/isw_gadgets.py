@@ -72,7 +72,7 @@ class ISWMult(Gadget[AddEnc]): #calculates x*y=z, Classical ISW-Sceme, see https
                     loc=Location(
                         "ISWMult",
                         1,
-                        description=f"R_{i}_{j} - x[{i}] * y[{j}]",
+                        description=f"R_{i}_{j} - x[{i}] * y[{j}]", 
                         caller=callloc,
                     ),
                 )
@@ -198,7 +198,7 @@ class ISWRefresh(Gadget[AddEnc]):
         return self.randoms
 
 
-class ISWSecMult(Gadget[AddEnc]): #Secure evaluation of h : x -> x * g(x)
+class AdditiveSecMult(Gadget[AddEnc]): #Secure evaluation of h : x -> x * g(x)
     def __init__(
         self,
         x: AddEnc,
@@ -410,7 +410,7 @@ class ISWSecMult(Gadget[AddEnc]): #Secure evaluation of h : x -> x * g(x)
         return self.randoms
 
 
-class ISWSecMultLookup(Gadget[AddEnc]): 
+class AdditiveSecMultLookup(Gadget[AddEnc]): 
     #Input: shares (ai )i such that +i ai = a, a look-up table for h : x → x g(x)
     #Output: shares ci satisfying +i ci = a g(a) for some F2 -linear function g
     def __init__(
@@ -421,7 +421,7 @@ class ISWSecMultLookup(Gadget[AddEnc]):
         h= None
     ):
         if h is None:
-            g= lambda v: v
+            g= lambda v: v*v
             h= lambda w: w * g(w)
 
         if not isinstance(x, AddEnc):
@@ -589,7 +589,7 @@ class ISWSecMultLookup(Gadget[AddEnc]):
 
 
         
-        new_secrets = [si * si for si in x.secrets]  # h(x) = x * g(x) = x^2 for g=id
+        new_secrets = [si * si * si for si in x.secrets]  # h(x) = x * g(x) = x^2 for g=id
         self.output_enc = x.copy(sharing=c, secrets=new_secrets)
 
     @classmethod
@@ -626,7 +626,7 @@ if __name__ == "__main__":
             isw_ref = ISWRefresh.with_defaults(d, 1, 0, F)
             isw_ref.functional_correctness()
 
-            isw_list =ISWSecMultLookup.with_defaults(d,1,0,F,None)
+            isw_list =AdditiveSecMultLookup.with_defaults(d,1,0,F,None)
             isw_list.functional_correctness()
 
 
