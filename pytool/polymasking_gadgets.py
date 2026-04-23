@@ -1489,7 +1489,6 @@ class LaolaMultGadget(Gadget[PolyEnc]):
             secrets=dummy_secrets,
         )
         return Fp_enc, Fpp_enc, randoms
-    
 
 
 class LaolaQuadGadget(Gadget[PolyEnc]):
@@ -1506,7 +1505,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
     ):
         if not isinstance(f, PolyEnc):
             raise TypeError("LaolaQuadGadget requires PolyEnc input.")
-        
+
         # if f.k > 1 and f.k > d // 2:
         #     raise ValueError(f"Degree {d} is too low for k={f.k}.")
         super().__init__([f], callloc)
@@ -1553,7 +1552,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             rc,
             callloc=Location("LaOlaMult", lineno=1, caller=callloc),
         )
-        
+
         self.randoms.update(rands_f)
         H0 = SWPolyMulGadget(
             f_p, f_p, callloc=Location("LaOlaMult", lineno=3, caller=callloc)
@@ -1588,7 +1587,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
     @classmethod
     def with_defaults(cls: Type[Self], d: int, k: int, e: int, F) -> Self:
         n = d + e + 1
-        F_enc, _, rc = make_f_g_encodings(d, e, n, k, F)
+        F_enc, rc = make_f_encodings(d, e, n, k, F)
         instance = cls(F_enc, d, rc, callloc=None)
         return instance
 
@@ -1928,8 +1927,8 @@ class BgwMultGadget(Gadget[PolyEnc]):
                 f=self.f,
                 d=zenc_degree,
                 offset=0,
-                A_tilde=self.a_tilde,                        description="degree reduction: multiply with lambda matrix (multiply two entries)",
-
+                A_tilde=self.a_tilde,
+                description="degree reduction: multiply with lambda matrix (multiply two entries)",
                 rc=rc,
                 callloc=Location(
                     "BgwMult",

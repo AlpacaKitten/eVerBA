@@ -113,7 +113,7 @@ if __name__ == "__main__":
     )  # number of embedded secrets, polymasking supports multiple secret embedding
     min_e, max_e = 0, 0  # fault resilience parameter, not important for now
     min_d, max_d = (
-        1,
+        2,
         2,
     )  # degree of polynomial, a polynomial of degree d is secure against d many probes
     for k in range(min_k, max_k + 1):
