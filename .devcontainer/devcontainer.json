@@ -1,7 +1,7 @@
 {
-  "name": "eVer Dev Container",
+  "name": "eVerBA Dev Container",
   "dockerFile": "Containerfile",
-  "workspaceFolder": "/workspaces/eVer",
+  "workspaceFolder": "/workspaces/eVerBA",
   "features": {
     "ghcr.io/devcontainers/features/git:1": {}
   },
