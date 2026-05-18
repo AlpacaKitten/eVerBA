@@ -2,7 +2,7 @@ from sage.all import GF
 from polymasking_gadgets import LaolaMultGadget, LaolaQuadGadget
 from isw_gadgets import ISWMult, AdditiveSecMult, AdditiveSecMultLookup
 
-F = GF(2**8)  # underlying field used for arithmetic
+F = GF(7)  # underlying field used for arithmetic
 num_worker = 1  # number of threads used during verification, crank this up for larger runs near linear speedup
 continue_on_fail = False  # by default the verification terminates on the first tuple that cannot be verified. Setting this to true will verify all tuples.
 
@@ -39,8 +39,14 @@ def test_laola_quad(d: int, k: int, e: int) -> None:
         e, #
         F, #
     )
+    out = laola.output()
+
+   
+
     # all gadgets implement a functional correctness call, which tests the actual computation on an encoding against a specification on secrets
     laola.functional_correctness()
+    for i,o in enumerate(out.get_encoded_shares()):
+        print(f"share:{i} {o}")
     # verification of strong non-interference notion, probing security is available as laola.verify_t_PS and non-interference as laola.verify_t_NI
     laola.verify_t_SNI(
         d,  # test for security against all probe sets of size d

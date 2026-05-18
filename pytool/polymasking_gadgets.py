@@ -948,7 +948,7 @@ class SWComp(Gadget[PolyEnc]):
         assert (
             isinstance(H0, PolyEnc)
             and isinstance(H1, PolyEnc)
-            and isinstance(H2, PolyEnc)
+           and isinstance(H2, PolyEnc)
             and isinstance(H3, PolyEnc)
         ), f"{self.name()} requires four PolyEnc inputs."
         assert H0.field == H1.field == H2.field == H3.field, (
@@ -1054,6 +1054,113 @@ class SWComp(Gadget[PolyEnc]):
 
     def random_vars(self) -> Set[Expression]:
         return self.randoms
+    
+class SWCompWithTwo(Gadget[PolyEnc]):
+    """
+    SWComp is a gadget that compresses four polynomial encodings H0, H1, H2, and H3 into a single polynomial encoding.
+    The gadget is used in the LAOLA multiplication algorithm.
+    """
+
+    def __init__(
+        self,
+        H0: PolyEnc,
+        
+        H3: PolyEnc,
+        d: int,
+        A_tilde: list[list[list[FractionFieldElement]]],
+        rc: count,
+        callloc: Optional[Location],
+    ):
+        assert (
+            isinstance(H0, PolyEnc)
+            
+            and isinstance(H3, PolyEnc)
+        ), f"{self.name()} requires four PolyEnc inputs."
+        assert H0.field== H3.field, (
+            "Fields differ between the four encodings."
+        )
+        assert H0.k == H3.k, (
+            f"Number of encoded secrets mismatch k: {H0.k}!= {H3.k}"
+        )
+        assert H0.e == H3.e, (
+            f"Redundancy mismatch e: = {H0.e}!= {H3.e}"
+        )
+        assert (
+            H0.support_points
+           
+            == H3.support_points
+        ), "Support-points do not match."
+        super().__init__([H0, H3], callloc)
+
+        self.randoms = set()
+        res = OptSZenc(
+            H0,
+            d,
+            A_tilde,
+            rc,
+            callloc=Location("SWComp", lineno=1, caller=callloc),
+        )
+        self.randoms.update(res.randoms)
+        res = SWPolyAddGadget(
+            res.output(),
+            H0,
+            callloc=Location(
+                "SWComp", lineno=2, description="optSZenc + H0", caller=callloc
+            ),
+        )
+        
+        res = SWPolyAddGadget(
+            res.output(),
+            H3,
+            callloc=Location(
+                "SWComp",
+                lineno=2,
+                description="(optSZenc + H0) + H3",
+                caller=callloc,
+            ),
+        )
+
+        self.output_enc = H0.copy(
+            sharing=res.output().sharing,
+            secrets=[
+                h0 + h3
+                for (h0, h3) in zip(
+                    H0.secrets, H3.secrets
+                )
+            ],
+        )
+
+    @classmethod
+    def with_defaults(cls: Type[Self], d: int, k: int, e: int, F) -> Self:
+        n = d + e + 1
+
+        F_enc, _, rc = make_f_g_encodings(d, e, n, k, F)
+        support_points = F_enc.support_points
+        secret_support_points = F_enc.secret_support_points
+        base_ring = F_enc.base_ring
+
+        # A_tilde
+        if k == 1:
+            a_tilde = gen_A_tilde_3D(
+                base_ring, n, d, k, [base_ring.zero()], support_points
+            )
+        else:
+            a_tilde = gen_A_tilde_3D(
+                base_ring, n, d, k, secret_support_points, support_points
+            )
+
+        H0, H3, rc = make_h_encodings(d, e, n, k, F)
+        instance = cls(H0, H3, d, a_tilde, rc, callloc=None)
+
+        return instance
+
+    def output(self) -> PolyEnc:
+        return self.output_enc
+
+    def random_vars(self) -> Set[Expression]:
+        return self.randoms
+    
+    
 
 
 class PolySquare(Gadget[PolyEnc]):
@@ -1554,22 +1661,64 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         )
 
         self.randoms.update(rands_f)
+       
+        zenc = OptZenc(
+                f,
+                d,
+                0,
+                A_tilde,
+                rc,
+                callloc=Location(
+                    "SplitRed",
+                    lineno=3,
+                    description="start Zenc",
+                    caller=callloc,
+                ),
+            )
+        
+        splitZenc = zenc.output()
+        self.randoms.update(zenc.randoms)
+
+        z_p, z_pp, rands_z = self._split_red(
+            splitZenc,
+            d,
+            (d -1) //2,
+            lambda_hat,
+            A_tilde,
+            rc,
+            callloc=Location("LaOlaMult", lineno=4, caller=callloc),
+        )
+
+        self.randoms.update(rands_z)
+
+
+        
+
+        fz_p= SWPolyAddGadget(
+            f_p, z_p, callloc=Location("LaOlaMult", lineno=3, caller=callloc)
+        ).output()
+
+        fz_pp= SWPolyAddGadget(
+            f_pp, z_pp, callloc=Location("LaOlaMult", lineno=3, caller=callloc)
+        ).output()
+
         H0 = SWPolyMulGadget(
-            f_p, f_p, callloc=Location("LaOlaMult", lineno=3, caller=callloc)
+            f_p, fz_p, callloc=Location("LaOlaMult", lineno=3, caller=callloc)
         ).output()
         H1 = SWPolyMulGadget(
-            f_p, f_pp, callloc=Location("LaOlaMult", lineno=4, caller=callloc)
+         f_p, fz_pp, callloc=Location("LaOlaMult", lineno=5, caller=callloc)
         ).output()
+      
         H2 = SWPolyMulGadget(
-            f_pp, f_p, callloc=Location("LaOlaMult", lineno=5, caller=callloc)
+         f_pp, fz_p, callloc=Location("LaOlaMult", lineno=5, caller=callloc)
         ).output()
         H3 = SWPolyMulGadget(
-            f_pp, f_pp, callloc=Location("LaOlaMult", lineno=6, caller=callloc)
+            f_pp, fz_pp, callloc=Location("LaOlaMult", lineno=6, caller=callloc)
         ).output()
         res = SWComp(
             H0,
             H1,
-            H1,
+            H2,
             H3,
             d,
             A_tilde,
