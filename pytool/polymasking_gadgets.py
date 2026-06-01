@@ -1678,11 +1678,14 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         
         splitZenc = zenc.output()
         self.randoms.update(zenc.randoms)
+        for i,o in enumerate(splitZenc.get_encoded_shares()):
+            print(f"ZEnc:{i} {o}")
 
-        z_p, z_pp, rands_z = self._split_red(
+
+        z_p, z_pp, rands_z = self._split_red_zenc(
             splitZenc,
-            d,
-            (d -1) //2,
+            1,
+            0,
             lambda_hat,
             A_tilde,
             rc,
@@ -1690,6 +1693,11 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         )
 
         self.randoms.update(rands_z)
+        for i,o in enumerate(z_p.get_encoded_shares()):
+            print(f"z_p:{i} {o}")
+
+        for i,o in enumerate(z_pp.get_encoded_shares()):
+                print(f"z_pp::{i} {o}")
 
 
         
@@ -1701,6 +1709,8 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         fz_pp= SWPolyAddGadget(
             f_pp, z_pp, callloc=Location("LaOlaMult", lineno=3, caller=callloc)
         ).output()
+
+
 
         H0 = SWPolyMulGadget(
             f_p, fz_p, callloc=Location("LaOlaMult", lineno=3, caller=callloc)
@@ -1985,6 +1995,266 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
                     F_cal[j][i],
                     loc=Location("SplitRed", lineno=34, caller=callloc),
                 )
+
+        Fpp_enc = f.copy(
+            sharing=Fpp,
+            secrets=dummy_secrets,
+        )
+        return Fp_enc, Fpp_enc, randoms
+    
+
+    def _split_red_zenc(
+        self,
+        f: PolyEnc,
+        global_d: int,
+        d_prime: int,
+        lambda_hat: list[list[MPolynomial]],
+        A_tilde: list[list[list[MPolynomial]]],
+        rc: count,
+        callloc: Optional[Location],
+    ) -> tuple[PolyEnc, PolyEnc, set[MPolynomial]]:
+        """
+        SplitRed is a function that splits a polynomial encoding F into two parts F' and F'' such that deg(F) = deg(F') = deg(F''), F = F' + F'' and deg(F' + F'') = deg(F)/2.
+        The function is used in the LAOLA multiplication algorithm.
+        """
+        n = f.n
+        ceil_n = (n + 1) // 2
+        floor_n = n // 2
+        randoms = set()
+        R_zero = f.variable_ring.zero()
+
+        if d_prime == global_d and global_d!=0:
+            zero_sharing = f.copy(
+                sharing=[
+                    mk_obsval(
+                        f.obsgraph,
+                        f.variable_ring.zero(),
+                        f.variable_ring.zero(),
+                    )
+                    for _ in range(n)
+                ],
+                secrets=[f.variable_ring.zero() for _ in range(f.k)],
+            )
+            return f, zero_sharing, randoms
+        # initialize dummy encodings
+        g_hat: list[PolyEnc] = [
+            f.copy(
+                sharing=[
+                    mk_obsval(
+                        f.obsgraph,
+                        R_zero,
+                        R_zero,
+                        location=Location(
+                            "SplitRed",
+                            description=f"init g-hat[{i}]",
+                            caller=callloc,
+                        ),
+                    )
+                    for i in range(n)
+                ],
+                secrets=[R_zero for _ in range(f.k)],
+            )
+            for _ in range(n)
+        ]  # FIXME: adjust range to avoid double assignment
+        g: list[PolyEnc] = [
+            f.copy(
+                sharing=[
+                    mk_obsval(
+                        f.obsgraph,
+                        R_zero,
+                        R_zero,
+                        location=Location(
+                            "SplitRed",
+                            description=f"init g[{i}]",
+                            caller=callloc,
+                        ),
+                    )
+                    for i in range(n)
+                ],
+                secrets=[R_zero for _ in range(f.k)],
+            )
+            for _ in range(n)
+        ]
+        # dummy_zero_enc = PolyEnc(shares=[SR(0) for _ in range(n)], secrets=[SR(0) for _ in range(f.k)])
+
+        # 1) build full degree zero encodings
+        for j in range(ceil_n):
+            degree = (
+                (global_d - j) if (j < (global_d + 1 - self.k)) else global_d
+            )
+            lineno = 4 if (j < (global_d + 1 - self.k)) else 6
+            zenc = OptZenc(
+                f,
+                degree,
+                0,
+                A_tilde,
+                rc,
+                callloc=Location(
+                    "SplitRed",
+                    lineno=lineno,
+                    description=f"g-hat[{j}] <- optZenc",
+                    caller=callloc,
+                ),
+            )
+            randoms.update(zenc.randoms)
+            g_hat[j] = zenc.output()
+
+        # this is the assumed unnecessary ZENC that is still in the algorithm
+        for j in range(floor_n):
+            g[j] = g_hat[j]
+
+        # 3) if n is odd, do the extra add-back at j=half-1
+        if n % 2 == 1:
+            # TODO: description
+            g[floor_n - 1] = SWPolyAddGadget(
+                g[floor_n - 1],
+                g_hat[ceil_n - 1],
+                callloc=Location("SplitRed", lineno=14, caller=callloc),
+            ).output()
+
+        # 4) first-half contributions to Fp
+        # TODO: Location
+        Fp_cal: list[list[ObservableValue]] = [
+            [mk_obsval(f.obsgraph, R_zero, R_zero) for _ in range(n)]
+            for _ in range(n)
+        ]
+        F_cal: list[list[ObservableValue]] = [
+            [mk_obsval(f.obsgraph, R_zero, R_zero) for _ in range(n)]
+            for _ in range(n)
+        ]
+        Fp: list[ObservableValue] = [
+            mk_obsval(f.obsgraph, R_zero, R_zero) for _ in range(n)
+        ]
+
+        for j in range(floor_n):
+            for i in range(n):
+                val = f.variable_ring(lambda_hat[i][j])
+                # TODO: Location
+                Fp_cal[j][i] = mk_obsval(f.obsgraph, val, val) * f.sharing[j]
+
+                # TODO: description
+                F_cal[j][i] = (
+                    g[j]
+                    .sharing[i]
+                    .__add__(
+                        Fp_cal[j][i],
+                        loc=Location("SplitRed", lineno=19, caller=callloc),
+                    )
+                )
+                # TODO: description
+                Fp[i].__iadd__(
+                    F_cal[j][i],
+                    loc=Location("SplitRed", lineno=21, caller=callloc),
+                )
+
+        dummy_secrets = [
+            R_zero for _ in range(f.k)
+        ]  # These are dummy secrets since this is a 1 input to  2 output gadget and both outputs contain specific parts of the secrets
+
+        Fp_enc = f.copy(
+            sharing=Fp,
+            secrets=dummy_secrets,
+        )
+
+        # 5) build G[j][i] for the second half
+
+        for j in range(ceil_n):
+            idx = j + floor_n
+            if d_prime == 0:
+                zeros = f.copy(
+                    sharing=[
+                        mk_obsval(
+                            f.obsgraph,
+                            f.variable_ring.zero(),
+                            f.variable_ring.zero(),
+                        )
+                        for _ in range(n)
+                    ],
+                    secrets=[f.variable_ring.zero() for _ in range(f.k)],
+                )
+                g[idx] = SWPolySubGadget(
+                    zeros,
+                    g_hat[j],
+                    callloc=Location("SplitRed", lineno=27, caller=callloc),
+                ).output()
+            else:
+                degree = (
+                    (d_prime - j) if (j < (d_prime - self.k + 1)) else (d_prime)
+                )
+                lineno = 24 if (j < (d_prime - self.k + 1)) else 26
+                if degree > 0:
+                    # TODO: description
+                    zenc = OptZenc(
+                        f,
+                        degree,
+                        0,
+                        A_tilde,
+                        rc,
+                        callloc=Location(
+                            "SplitRed", lineno=lineno, caller=callloc
+                        ),
+                    )
+                    randoms.update(zenc.randoms)
+                    g[idx] = SWPolySubGadget(
+                        zenc.output_enc,
+                        g_hat[j],
+                        callloc=Location("SplitRed", lineno=27, caller=callloc),
+                    ).output()
+                else:
+                    zeros = f.copy(
+                        sharing=[
+                            mk_obsval(
+                                f.obsgraph,
+                                f.variable_ring.zero(),
+                                f.variable_ring.zero(),
+                            )
+                            for _ in range(n)
+                        ],
+                        secrets=[f.variable_ring.zero() for _ in range(f.k)],
+                    )
+                    g[idx] = SWPolySubGadget(
+                        zeros,
+                        g_hat[j],
+                        callloc=Location("SplitRed", lineno=27, caller=callloc),
+                    ).output()
+
+        # 6) accumulate into outputs Fp and Fpp
+        Fpp: list[ObservableValue] = [
+            mk_obsval(f.obsgraph, R_zero, R_zero) for _ in range(n)
+        ]
+
+        for j in range(floor_n, n):
+            for i in range(n):
+                print(f"i: {i} j: {j}")
+                val = f.variable_ring(lambda_hat[i][j])
+                # TODO: Location
+                Fp_cal[j][i] = mk_obsval(f.obsgraph, val, val) * f.sharing[j]
+                print(f"F_cal before add: {F_cal[j][i]}")
+
+
+                F_cal[j][i] = (
+                    g[j]
+                    .sharing[i]
+                    .__add__(
+                        Fp_cal[j][i],
+                        loc=Location("SplitRed", lineno=32, caller=callloc),
+                    )
+                )
+                print(f"F_cal after add: {F_cal[j][i]}")                
+                print(f"Fpp {i} before add: {Fpp[i]}")
+
+
+
+
+                Fpp[i].__iadd__(
+                    F_cal[j][i],
+                    loc=Location("SplitRed", lineno=34, caller=callloc),
+                )
+                print(f"Fpp {i} after add: {Fpp[i]}")
+                print("")
+                print("")
+
+                
 
         Fpp_enc = f.copy(
             sharing=Fpp,

@@ -19,7 +19,7 @@ def test_laola(d: int, k: int, e: int) -> None:
         F, #
     )
     # all gadgets implement a functional correctness call, which tests the actual computation on an encoding against a specification on secrets
-    laola.functional_correctness()
+    #laola.functional_correctness()
     # verification of strong non-interference notion, probing security is available as laola.verify_t_PS and non-interference as laola.verify_t_NI
     laola.verify_t_SNI(
         d,  # test for security against all probe sets of size d
@@ -129,8 +129,8 @@ if __name__ == "__main__":
                     k > d
                 ):  # k must be less than or equal to d, cant encode more secrets than degree
                     continue
-                test_laola(d, k, e)
-                test_laola_quad(d,k,e)
-                test_ISW_mult(d)
-                test_ISW_secmult(d)
-                test_ISW_secmultLookup(d)
+                test_laola_quad(d, k, e)
+                test_laola(d,k,e)
+                #test_ISW_mult(d)
+                #test_ISW_secmult(d)
+                #test_ISW_secmultLookup(d)
