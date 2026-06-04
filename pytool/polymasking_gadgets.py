@@ -1657,39 +1657,31 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             lambda_hat,
             A_tilde,
             rc,
-            callloc=Location("LaOlaMult", lineno=1, caller=callloc),
+            callloc=Location("LaOlaQuad", lineno=1, caller=callloc),
         )
 
         self.randoms.update(rands_f)
        
-        zenc = OptZenc(
-                f,
-                d,
-                0,
-                A_tilde,
-                rc,
-                callloc=Location(
-                    "SplitRed",
-                    lineno=3,
-                    description="start Zenc",
-                    caller=callloc,
-                ),
-            )
-        
-        splitZenc = zenc.output()
-        self.randoms.update(zenc.randoms)
-        for i,o in enumerate(splitZenc.get_encoded_shares()):
-            print(f"ZEnc:{i} {o}")
 
-
+        zeros = f.copy(
+                        sharing=[
+                            mk_obsval(
+                                f.obsgraph,
+                                f.variable_ring.zero(),
+                                f.variable_ring.zero(),
+                            )
+                            for _ in range(n)
+                        ],
+                        secrets=[f.variable_ring.zero() for _ in range(f.k)],
+                    )
         z_p, z_pp, rands_z = self._split_red_zenc(
-            splitZenc,
-            1,
+            zeros,
+            d,
             0,
             lambda_hat,
             A_tilde,
             rc,
-            callloc=Location("LaOlaMult", lineno=4, caller=callloc),
+            callloc=Location("LaOlaQuad", lineno=2, caller=callloc),
         )
 
         self.randoms.update(rands_z)
@@ -1703,27 +1695,27 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         
 
         fz_p= SWPolyAddGadget(
-            f_p, z_p, callloc=Location("LaOlaMult", lineno=3, caller=callloc)
+            f_p, z_p, callloc=Location("LaOlaQuad", lineno=3, caller=callloc)
         ).output()
 
         fz_pp= SWPolyAddGadget(
-            f_pp, z_pp, callloc=Location("LaOlaMult", lineno=3, caller=callloc)
+            f_pp, z_pp, callloc=Location("LaOlaQuad", lineno=4, caller=callloc)
         ).output()
 
 
 
         H0 = SWPolyMulGadget(
-            f_p, fz_p, callloc=Location("LaOlaMult", lineno=3, caller=callloc)
+            f_p, fz_p, callloc=Location("LaOlaQuad", lineno=5, caller=callloc)
         ).output()
         H1 = SWPolyMulGadget(
-         f_p, fz_pp, callloc=Location("LaOlaMult", lineno=5, caller=callloc)
+         f_p, fz_pp, callloc=Location("LaOlaQuad", lineno=6, caller=callloc)
         ).output()
       
         H2 = SWPolyMulGadget(
-         f_pp, fz_p, callloc=Location("LaOlaMult", lineno=5, caller=callloc)
+         f_pp, fz_p, callloc=Location("LaOlaQuad", lineno=7, caller=callloc)
         ).output()
         H3 = SWPolyMulGadget(
-            f_pp, fz_pp, callloc=Location("LaOlaMult", lineno=6, caller=callloc)
+            f_pp, fz_pp, callloc=Location("LaOlaQuad", lineno=8, caller=callloc)
         ).output()
         res = SWComp(
             H0,
@@ -1733,7 +1725,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             d,
             A_tilde,
             rc,
-            callloc=Location("LaOlaMult", lineno=7, caller=callloc),
+            callloc=Location("LaOlaQuad", lineno=9, caller=callloc),
         )
         self.randoms.update(res.randoms)
         res_enc = res.output()
@@ -2230,6 +2222,8 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
                 # TODO: Location
                 Fp_cal[j][i] = mk_obsval(f.obsgraph, val, val) * f.sharing[j]
                 print(f"F_cal before add: {F_cal[j][i]}")
+                print(f"Fp_cal: {Fp_cal[j][i]}")
+                print(val)
 
 
                 F_cal[j][i] = (
