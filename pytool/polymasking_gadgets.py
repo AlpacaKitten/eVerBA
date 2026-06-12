@@ -1678,7 +1678,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             zeros,
             d,
             0,
-            lambda_hat,
+           # lambda_hat,
             A_tilde,
             rc,
             callloc=Location("LaOlaQuad", lineno=2, caller=callloc),
@@ -2000,7 +2000,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         f: PolyEnc,
         global_d: int,
         d_prime: int,
-        lambda_hat: list[list[MPolynomial]],
+    #    lambda_hat: list[list[MPolynomial]],
         A_tilde: list[list[list[MPolynomial]]],
         rc: count,
         callloc: Optional[Location],
@@ -2120,7 +2120,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
 
         for j in range(floor_n):
             for i in range(n):
-                val = f.variable_ring(lambda_hat[i][j])
+                val = f.variable_ring(0,0)#lambda_hat[i][j])
                 # TODO: Location
                 Fp_cal[j][i] = mk_obsval(f.obsgraph, val, val) * f.sharing[j]
 
@@ -2218,7 +2218,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         for j in range(floor_n, n):
             for i in range(n):
                 print(f"i: {i} j: {j}")
-                val = f.variable_ring(lambda_hat[i][j])
+                val = f.variable_ring(0,0)
                 # TODO: Location
                 Fp_cal[j][i] = mk_obsval(f.obsgraph, val, val) * f.sharing[j]
                 print(f"F_cal before add: {F_cal[j][i]}")
