@@ -2206,31 +2206,12 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
 
         for j in range(floor_n, n):
             for i in range(n):
-                print(f"i: {i} j: {j}")
-                val = f.variable_ring(0,0)
-                # TODO: Location
-                Fp_cal[j][i] = mk_obsval(f.obsgraph, val, val) * f.sharing[j]
-                print(f"F_cal before add: {F_cal[j][i]}")
-                print(f"Fp_cal: {Fp_cal[j][i]}")
-                print(val)
-
-
-                F_cal[j][i] = (
-                    g[j]
-                    .sharing[i]
-                    .__add__(
-                        Fp_cal[j][i],
-                        loc=Location("SplitRed", lineno=32, caller=callloc),
-                    )
-                )
-                print(f"F_cal after add: {F_cal[j][i]}")                
-                print(f"Fpp {i} before add: {Fpp[i]}")
-
+               
 
 
 
                 Fpp[i].__iadd__(
-                    F_cal[j][i],
+                    g[j].sharing[i],
                     loc=Location("SplitRed", lineno=34, caller=callloc),
                 )
                 print(f"Fpp {i} after add: {Fpp[i]}")
