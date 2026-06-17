@@ -2002,14 +2002,15 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         d_prime: int,
     #    lambda_hat: list[list[MPolynomial]],
         A_tilde: list[list[list[MPolynomial]]],
-        rc: count,
+        rc: count, #roundcounter?
         callloc: Optional[Location],
     ) -> tuple[PolyEnc, PolyEnc, set[MPolynomial]]:
         """
         SplitRed is a function that splits a polynomial encoding F into two parts F' and F'' such that deg(F) = deg(F') = deg(F''), F = F' + F'' and deg(F' + F'') = deg(F)/2.
         The function is used in the LAOLA multiplication algorithm.
         """
-        n = f.n
+        n = f.n 
+        print(f"n={n}")
         ceil_n = (n + 1) // 2
         floor_n = n // 2
         randoms = set()
@@ -2120,22 +2121,10 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
 
         for j in range(floor_n):
             for i in range(n):
-                val = f.variable_ring(0,0)#lambda_hat[i][j])
-                # TODO: Location
-                Fp_cal[j][i] = mk_obsval(f.obsgraph, val, val) * f.sharing[j]
-
-                # TODO: description
-                F_cal[j][i] = (
-                    g[j]
-                    .sharing[i]
-                    .__add__(
-                        Fp_cal[j][i],
-                        loc=Location("SplitRed", lineno=19, caller=callloc),
-                    )
-                )
+                
                 # TODO: description
                 Fp[i].__iadd__(
-                    F_cal[j][i],
+                    g[j].sharing[i],
                     loc=Location("SplitRed", lineno=21, caller=callloc),
                 )
 
