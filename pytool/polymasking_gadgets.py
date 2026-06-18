@@ -2000,7 +2000,6 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         f: PolyEnc,
         global_d: int,
         d_prime: int,
-    #    lambda_hat: list[list[MPolynomial]],
         A_tilde: list[list[list[MPolynomial]]],
         rc: count, #roundcounter?
         callloc: Optional[Location],
@@ -2009,7 +2008,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         SplitRed is a function that splits a polynomial encoding F into two parts F' and F'' such that deg(F) = deg(F') = deg(F''), F = F' + F'' and deg(F' + F'') = deg(F)/2.
         The function is used in the LAOLA multiplication algorithm.
         """
-        n = f.n 
+        n = f.n #d+e+1, Anzahl shares
         print(f"n={n}")
         ceil_n = (n + 1) // 2
         floor_n = n // 2
@@ -2071,7 +2070,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         # dummy_zero_enc = PolyEnc(shares=[SR(0) for _ in range(n)], secrets=[SR(0) for _ in range(f.k)])
 
         # 1) build full degree zero encodings
-        for j in range(ceil_n):
+        for j in range(floor_n):
             degree = (
                 (global_d - j) if (j < (global_d + 1 - self.k)) else global_d
             )
@@ -2106,15 +2105,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             ).output()
 
         # 4) first-half contributions to Fp
-        # TODO: Location
-        Fp_cal: list[list[ObservableValue]] = [
-            [mk_obsval(f.obsgraph, R_zero, R_zero) for _ in range(n)]
-            for _ in range(n)
-        ]
-        F_cal: list[list[ObservableValue]] = [
-            [mk_obsval(f.obsgraph, R_zero, R_zero) for _ in range(n)]
-            for _ in range(n)
-        ]
+       
         Fp: list[ObservableValue] = [
             mk_obsval(f.obsgraph, R_zero, R_zero) for _ in range(n)
         ]
@@ -2139,7 +2130,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
 
         # 5) build G[j][i] for the second half
 
-        for j in range(ceil_n):
+        for j in range(floor_n):
             idx = j + floor_n
             if d_prime == 0:
                 zeros = f.copy(
@@ -2207,9 +2198,6 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         for j in range(floor_n, n):
             for i in range(n):
                
-
-
-
                 Fpp[i].__iadd__(
                     g[j].sharing[i],
                     loc=Location("SplitRed", lineno=34, caller=callloc),
