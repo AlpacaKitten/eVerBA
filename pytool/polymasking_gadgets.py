@@ -2015,19 +2015,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         randoms = set()
         R_zero = f.variable_ring.zero()
 
-        if d_prime == global_d and global_d!=0:
-            zero_sharing = f.copy(
-                sharing=[
-                    mk_obsval(
-                        f.obsgraph,
-                        f.variable_ring.zero(),
-                        f.variable_ring.zero(),
-                    )
-                    for _ in range(n)
-                ],
-                secrets=[f.variable_ring.zero() for _ in range(f.k)],
-            )
-            return f, zero_sharing, randoms
+    
         # initialize dummy encodings
         g_hat: list[PolyEnc] = [
             f.copy(
