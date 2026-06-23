@@ -1426,7 +1426,7 @@ class LaolaMultGadget(Gadget[PolyEnc]):
         # dummy_zero_enc = PolyEnc(shares=[SR(0) for _ in range(n)], secrets=[SR(0) for _ in range(f.k)])
 
         # 1) build full degree zero encodings
-        for j in range(ceil_n):
+        for j in range(floor_n):
             degree = (
                 (global_d - j) if (j < (global_d + 1 - self.k)) else global_d
             )
@@ -1506,7 +1506,7 @@ class LaolaMultGadget(Gadget[PolyEnc]):
 
         # 5) build G[j][i] for the second half
 
-        for j in range(ceil_n):
+        for j in range(floor_n):
             idx = j + floor_n
             if d_prime == 0:
                 zeros = f.copy(
@@ -1823,7 +1823,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         # dummy_zero_enc = PolyEnc(shares=[SR(0) for _ in range(n)], secrets=[SR(0) for _ in range(f.k)])
 
         # 1) build full degree zero encodings
-        for j in range(ceil_n):
+        for j in range(floor_n):
             degree = (
                 (global_d - j) if (j < (global_d + 1 - self.k)) else global_d
             )
@@ -1903,7 +1903,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
 
         # 5) build G[j][i] for the second half
 
-        for j in range(ceil_n):
+        for j in range(floor_n):
             idx = j + floor_n
             if d_prime == 0:
                 zeros = f.copy(
@@ -2005,7 +2005,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         callloc: Optional[Location],
     ) -> tuple[PolyEnc, PolyEnc, set[MPolynomial]]:
         """
-        SplitRed is a function that splits a polynomial encoding F into two parts F' and F'' such that deg(F) = deg(F') = deg(F''), F = F' + F'' and deg(F' + F'') = deg(F)/2.
+        SplitRedZenc is a function that splits a zero-encoding F into two parts F' and F'' such that deg(F) = deg(F') = deg(F''), F = F' + F'' and deg(F' + F'') = 0.
         The function is used in the LAOLA multiplication algorithm.
         """
         n = f.n #d+e+1, Anzahl shares
@@ -2112,8 +2112,6 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
 
         for j in range(floor_n):
             for i in range(n):
-                
-                # TODO: description
                 Fp[i].__iadd__(
                     g[j].sharing[i],
                     loc=Location("SplitRed", lineno=21, caller=callloc),
@@ -2132,64 +2130,24 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
 
         for j in range(floor_n):
             idx = j + floor_n
-            if d_prime == 0:
-                zeros = f.copy(
-                    sharing=[
-                        mk_obsval(
-                            f.obsgraph,
-                            f.variable_ring.zero(),
-                            f.variable_ring.zero(),
-                        )
-                        for _ in range(n)
-                    ],
-                    secrets=[f.variable_ring.zero() for _ in range(f.k)],
-                )
-                g[idx] = SWPolySubGadget(
-                    zeros,
-                    g_hat[j],
-                    callloc=Location("SplitRed", lineno=27, caller=callloc),
-                ).output()
-            else:
-                degree = (
-                    (d_prime - j) if (j < (d_prime - self.k + 1)) else (d_prime)
-                )
-                lineno = 24 if (j < (d_prime - self.k + 1)) else 26
-                if degree > 0:
-                    # TODO: description
-                    zenc = OptZenc(
-                        f,
-                        degree,
-                        0,
-                        A_tilde,
-                        rc,
-                        callloc=Location(
-                            "SplitRed", lineno=lineno, caller=callloc
-                        ),
+            print("d-Prime: %d",d_prime)
+            zeros = f.copy(
+                sharing=[
+                    mk_obsval(
+                        f.obsgraph,
+                        f.variable_ring.zero(),
+                        f.variable_ring.zero(),
                     )
-                    randoms.update(zenc.randoms)
-                    g[idx] = SWPolySubGadget(
-                        zenc.output_enc,
-                        g_hat[j],
-                        callloc=Location("SplitRed", lineno=27, caller=callloc),
-                    ).output()
-                else:
-                    zeros = f.copy(
-                        sharing=[
-                            mk_obsval(
-                                f.obsgraph,
-                                f.variable_ring.zero(),
-                                f.variable_ring.zero(),
-                            )
-                            for _ in range(n)
-                        ],
-                        secrets=[f.variable_ring.zero() for _ in range(f.k)],
-                    )
-                    g[idx] = SWPolySubGadget(
-                        zeros,
-                        g_hat[j],
-                        callloc=Location("SplitRed", lineno=27, caller=callloc),
-                    ).output()
-
+                    for _ in range(n)
+                ],
+                secrets=[f.variable_ring.zero() for _ in range(f.k)],
+            )
+            g[idx] = SWPolySubGadget(
+                zeros,
+                g_hat[j],
+                callloc=Location("SplitRed", lineno=27, caller=callloc),
+            ).output()
+            
         # 6) accumulate into outputs Fp and Fpp
         Fpp: list[ObservableValue] = [
             mk_obsval(f.obsgraph, R_zero, R_zero) for _ in range(n)
