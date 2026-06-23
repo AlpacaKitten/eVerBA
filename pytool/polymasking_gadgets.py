@@ -2010,7 +2010,6 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         """
         n = f.n #d+e+1, Anzahl shares
         print(f"n={n}")
-        ceil_n = (n + 1) // 2
         floor_n = n // 2
         randoms = set()
         R_zero = f.variable_ring.zero()
@@ -2088,7 +2087,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             # TODO: description
             g[floor_n - 1] = SWPolyAddGadget(
                 g[floor_n - 1],
-                g_hat[ceil_n - 1],
+                g_hat[floor_n],
                 callloc=Location("SplitRed", lineno=14, caller=callloc),
             ).output()
 
