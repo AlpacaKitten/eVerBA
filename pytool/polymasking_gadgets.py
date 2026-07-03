@@ -1678,21 +1678,12 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             zeros,
             d,
             0,
-           # lambda_hat,
             A_tilde,
             rc,
             callloc=Location("LaOlaQuad", lineno=2, caller=callloc),
         )
 
         self.randoms.update(rands_z)
-        for i,o in enumerate(z_p.get_encoded_shares()):
-            print(f"z_p:{i} {o}")
-
-        for i,o in enumerate(z_pp.get_encoded_shares()):
-                print(f"z_pp::{i} {o}")
-
-
-        
 
         fz_p= SWPolyAddGadget(
             f_p, z_p, callloc=Location("LaOlaQuad", lineno=3, caller=callloc)
@@ -1702,20 +1693,38 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             f_pp, z_pp, callloc=Location("LaOlaQuad", lineno=4, caller=callloc)
         ).output()
 
+        #hier so linearfunktion anwenden?
+        
+        a = f_p.base_ring(4)  
+        b = f_p.base_ring(2) 
+
+       
+
+        g_f_p = fz_p.copy(
+            sharing=[mk_obsval(fz_p.obsgraph, s.ps_obs.value * a + b, s.ps_obs.value * a + b) for s in fz_p.sharing],
+            secrets=[s * a + b for s in fz_p.secrets],
+        )
+       
+        # Apply g to second part (excludes b to prevent cancellation)
+        g_f_pp = fz_pp.copy(
+            sharing=[mk_obsval(fz_pp.obsgraph, s.ps_obs.value * a, s.ps_obs.value * a) for s in fz_pp.sharing],
+            secrets=[s * a for s in fz_pp.secrets],
+        )
+       
 
 
         H0 = SWPolyMulGadget(
-            f_p, fz_p, callloc=Location("LaOlaQuad", lineno=5, caller=callloc)
+            f_p, g_f_p, callloc=Location("LaOlaQuad", lineno=5, caller=callloc)
         ).output()
         H1 = SWPolyMulGadget(
-         f_p, fz_pp, callloc=Location("LaOlaQuad", lineno=6, caller=callloc)
+         f_p, g_f_pp, callloc=Location("LaOlaQuad", lineno=6, caller=callloc)
         ).output()
       
         H2 = SWPolyMulGadget(
-         f_pp, fz_p, callloc=Location("LaOlaQuad", lineno=7, caller=callloc)
+         f_pp, g_f_p, callloc=Location("LaOlaQuad", lineno=7, caller=callloc)
         ).output()
         H3 = SWPolyMulGadget(
-            f_pp, fz_pp, callloc=Location("LaOlaQuad", lineno=8, caller=callloc)
+            f_pp, g_f_pp, callloc=Location("LaOlaQuad", lineno=8, caller=callloc)
         ).output()
         res = SWComp(
             H0,
@@ -1727,12 +1736,14 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             rc,
             callloc=Location("LaOlaQuad", lineno=9, caller=callloc),
         )
+
+    
         self.randoms.update(res.randoms)
         res_enc = res.output()
 
         self.output_enc = f.copy(
             sharing=res_enc.sharing,
-            secrets=[f_i * f_i for f_i in f.secrets],
+            secrets=[s * (a*s + b) for s in f.secrets],
         )
 
     @classmethod
@@ -2009,7 +2020,6 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         The function is used in the LAOLA multiplication algorithm.
         """
         n = f.n #d+e+1, Anzahl shares
-        print(f"n={n}")
         floor_n = n // 2
         randoms = set()
         R_zero = f.variable_ring.zero()
@@ -2054,7 +2064,6 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             )
             for _ in range(n)
         ]
-        # dummy_zero_enc = PolyEnc(shares=[SR(0) for _ in range(n)], secrets=[SR(0) for _ in range(f.k)])
 
         # 1) build full degree zero encodings
         for j in range(floor_n):
@@ -2116,8 +2125,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         # 5) build G[j][i] for the second half
 
         for j in range(floor_n):
-            idx = j + floor_n
-            print("d-Prime: %d",d_prime)
+            idx = j + floor_n 
             zeros = f.copy(
                 sharing=[
                     mk_obsval(
@@ -2127,7 +2135,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
                     )
                     for _ in range(n)
                 ],
-                secrets=[f.variable_ring.zero() for _ in range(f.k)],
+                secrets=[f.variable_ring.zero() for __ in range(f.k)],
             )
             g[idx] = SWPolySubGadget(
                 zeros,
@@ -2147,11 +2155,6 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
                     g[j].sharing[i],
                     loc=Location("SplitRed", lineno=34, caller=callloc),
                 )
-                print(f"Fpp {i} after add: {Fpp[i]}")
-                print("")
-                print("")
-
-                
 
         Fpp_enc = f.copy(
             sharing=Fpp,
