@@ -23,7 +23,7 @@ from gen_parameter_vars import (
     generate_vandermonde,
 )
 from polyring import gen_rings_for_gadgets
-from utils import mk_loc_factory, to_obsval_factory
+from utils import coerce_int_to_field_element, mk_loc_factory, to_obsval_factory
 
 
 def setup_polyencs(
@@ -948,7 +948,7 @@ class SWComp(Gadget[PolyEnc]):
         assert (
             isinstance(H0, PolyEnc)
             and isinstance(H1, PolyEnc)
-           and isinstance(H2, PolyEnc)
+            and isinstance(H2, PolyEnc)
             and isinstance(H3, PolyEnc)
         ), f"{self.name()} requires four PolyEnc inputs."
         assert H0.field == H1.field == H2.field == H3.field, (
@@ -1054,7 +1054,8 @@ class SWComp(Gadget[PolyEnc]):
 
     def random_vars(self) -> Set[Expression]:
         return self.randoms
-    
+
+
 class SWCompWithTwo(Gadget[PolyEnc]):
     """
     SWComp is a gadget that compresses four polynomial encodings H0, H1, H2, and H3 into a single polynomial encoding.
@@ -1064,32 +1065,23 @@ class SWCompWithTwo(Gadget[PolyEnc]):
     def __init__(
         self,
         H0: PolyEnc,
-        
         H3: PolyEnc,
         d: int,
         A_tilde: list[list[list[FractionFieldElement]]],
         rc: count,
         callloc: Optional[Location],
     ):
-        assert (
-            isinstance(H0, PolyEnc)
-            
-            and isinstance(H3, PolyEnc)
-        ), f"{self.name()} requires four PolyEnc inputs."
-        assert H0.field== H3.field, (
-            "Fields differ between the four encodings."
+        assert isinstance(H0, PolyEnc) and isinstance(H3, PolyEnc), (
+            f"{self.name()} requires four PolyEnc inputs."
         )
+        assert H0.field == H3.field, "Fields differ between the four encodings."
         assert H0.k == H3.k, (
             f"Number of encoded secrets mismatch k: {H0.k}!= {H3.k}"
         )
-        assert H0.e == H3.e, (
-            f"Redundancy mismatch e: = {H0.e}!= {H3.e}"
+        assert H0.e == H3.e, f"Redundancy mismatch e: = {H0.e}!= {H3.e}"
+        assert H0.support_points == H3.support_points, (
+            "Support-points do not match."
         )
-        assert (
-            H0.support_points
-           
-            == H3.support_points
-        ), "Support-points do not match."
         super().__init__([H0, H3], callloc)
 
         self.randoms = set()
@@ -1108,7 +1100,7 @@ class SWCompWithTwo(Gadget[PolyEnc]):
                 "SWComp", lineno=2, description="optSZenc + H0", caller=callloc
             ),
         )
-        
+
         res = SWPolyAddGadget(
             res.output(),
             H3,
@@ -1122,12 +1114,7 @@ class SWCompWithTwo(Gadget[PolyEnc]):
 
         self.output_enc = H0.copy(
             sharing=res.output().sharing,
-            secrets=[
-                h0 + h3
-                for (h0, h3) in zip(
-                    H0.secrets, H3.secrets
-                )
-            ],
+            secrets=[h0 + h3 for (h0, h3) in zip(H0.secrets, H3.secrets)],
         )
 
     @classmethod
@@ -1159,8 +1146,6 @@ class SWCompWithTwo(Gadget[PolyEnc]):
 
     def random_vars(self) -> Set[Expression]:
         return self.randoms
-    
-    
 
 
 class PolySquare(Gadget[PolyEnc]):
@@ -1661,19 +1646,18 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         )
 
         self.randoms.update(rands_f)
-       
 
         zeros = f.copy(
-                        sharing=[
-                            mk_obsval(
-                                f.obsgraph,
-                                f.variable_ring.zero(),
-                                f.variable_ring.zero(),
-                            )
-                            for _ in range(n)
-                        ],
-                        secrets=[f.variable_ring.zero() for _ in range(f.k)],
-                    )
+            sharing=[
+                mk_obsval(
+                    f.obsgraph,
+                    f.variable_ring.zero(),
+                    f.variable_ring.zero(),
+                )
+                for _ in range(n)
+            ],
+            secrets=[f.variable_ring.zero() for _ in range(f.k)],
+        )
         z_p, z_pp, rands_z = self._split_red_zenc(
             zeros,
             d,
@@ -1685,27 +1669,25 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
 
         self.randoms.update(rands_z)
 
-        fz_p= SWPolyAddGadget(
+        fz_p = SWPolyAddGadget(
             f_p, z_p, callloc=Location("LaOlaQuad", lineno=3, caller=callloc)
         ).output()
 
-        fz_pp= SWPolyAddGadget(
+        fz_pp = SWPolyAddGadget(
             f_pp, z_pp, callloc=Location("LaOlaQuad", lineno=4, caller=callloc)
         ).output()
 
-        #hier so linearfunktion anwenden?
-       
-
+        # hier so linearfunktion anwenden?
 
         H0 = SWPolyMulGadget(
             f_p, fz_p, callloc=Location("LaOlaQuad", lineno=5, caller=callloc)
         ).output()
         H1 = SWPolyMulGadget(
-         f_p, fz_pp, callloc=Location("LaOlaQuad", lineno=6, caller=callloc)
+            f_p, fz_pp, callloc=Location("LaOlaQuad", lineno=6, caller=callloc)
         ).output()
-      
+
         H2 = SWPolyMulGadget(
-         f_pp, fz_p, callloc=Location("LaOlaQuad", lineno=7, caller=callloc)
+            f_pp, fz_p, callloc=Location("LaOlaQuad", lineno=7, caller=callloc)
         ).output()
         H3 = SWPolyMulGadget(
             f_pp, fz_pp, callloc=Location("LaOlaQuad", lineno=8, caller=callloc)
@@ -1721,7 +1703,6 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             callloc=Location("LaOlaQuad", lineno=9, caller=callloc),
         )
 
-    
         self.randoms.update(res.randoms)
         res_enc = res.output()
 
@@ -1988,7 +1969,6 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             secrets=dummy_secrets,
         )
         return Fp_enc, Fpp_enc, randoms
-    
 
     def _split_red_zenc(
         self,
@@ -1996,19 +1976,18 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         global_d: int,
         d_prime: int,
         A_tilde: list[list[list[MPolynomial]]],
-        rc: count, #roundcounter?
+        rc: count,  # roundcounter?
         callloc: Optional[Location],
     ) -> tuple[PolyEnc, PolyEnc, set[MPolynomial]]:
         """
         SplitRedZenc is a function that splits a zero-encoding F into two parts F' and F'' such that deg(F) = deg(F') = deg(F''), F = F' + F'' and deg(F' + F'') = 0.
         The function is used in the LAOLA multiplication algorithm.
         """
-        n = f.n #d+e+1, Anzahl shares
+        n = f.n  # d+e+1, Anzahl shares
         floor_n = n // 2
         randoms = set()
         R_zero = f.variable_ring.zero()
 
-    
         # initialize dummy encodings
         g_hat: list[PolyEnc] = [
             f.copy(
@@ -2085,7 +2064,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             ).output()
 
         # 4) first-half contributions to Fp
-       
+
         Fp: list[ObservableValue] = [
             mk_obsval(f.obsgraph, R_zero, R_zero) for _ in range(n)
         ]
@@ -2109,7 +2088,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         # 5) build G[j][i] for the second half
 
         for j in range(floor_n):
-            idx = j + floor_n 
+            idx = j + floor_n
             zeros = f.copy(
                 sharing=[
                     mk_obsval(
@@ -2126,7 +2105,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
                 g_hat[j],
                 callloc=Location("SplitRed", lineno=27, caller=callloc),
             ).output()
-            
+
         # 6) accumulate into outputs Fp and Fpp
         Fpp: list[ObservableValue] = [
             mk_obsval(f.obsgraph, R_zero, R_zero) for _ in range(n)
@@ -2134,7 +2113,6 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
 
         for j in range(floor_n, n):
             for i in range(n):
-               
                 Fpp[i].__iadd__(
                     g[j].sharing[i],
                     loc=Location("SplitRed", lineno=34, caller=callloc),
@@ -2145,6 +2123,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             secrets=dummy_secrets,
         )
         return Fp_enc, Fpp_enc, randoms
+
 
 class LaolaLinearMultGadget(Gadget[PolyEnc]):
     """
@@ -2209,39 +2188,48 @@ class LaolaLinearMultGadget(Gadget[PolyEnc]):
             rc,
             callloc=Location("LaOlaQuad", lineno=1, caller=callloc),
         )
-
         self.randoms.update(rands_f)
-        
-        a_p = f_p.base_ring(a)  
-        b_p = f_p.base_ring(b) 
 
-       
+        a_p = f_p.variable_ring(coerce_int_to_field_element(f_p.field, a))
+        b_p = f_p.variable_ring(coerce_int_to_field_element(f_p.field, b))
 
         g_f_p = f_p.copy(
-            sharing=[mk_obsval(f_p.obsgraph, s.ps_obs.value * a_p + b_p, s.ps_obs.value * a_p + b_p) for s in f_p.sharing],
+            sharing=[
+                mk_obsval(
+                    f_p.obsgraph,
+                    s.ps_obs.value * a_p + b_p,
+                    s.ni_obs.value * a_p + b_p,
+                )
+                for s in f_p.sharing
+            ],
             secrets=[s * a_p + b_p for s in f_p.secrets],
         )
-       
+
         # Apply g to second part (excludes b to prevent cancellation)
         g_f_pp = f_pp.copy(
-            sharing=[mk_obsval(f_pp.obsgraph, s.ps_obs.value * a_p, s.ps_obs.value * a_p) for s in f_pp.sharing],
+            sharing=[
+                mk_obsval(
+                    f_pp.obsgraph, s.ps_obs.value * a_p, s.ni_obs.value * a_p
+                )
+                for s in f_pp.sharing
+            ],
             secrets=[s * a_p for s in f_pp.secrets],
         )
-       
-
 
         H0 = SWPolyMulGadget(
             f_p, g_f_p, callloc=Location("LaOlaQuad", lineno=5, caller=callloc)
         ).output()
         H1 = SWPolyMulGadget(
-         f_p, g_f_pp, callloc=Location("LaOlaQuad", lineno=6, caller=callloc)
+            f_p, g_f_pp, callloc=Location("LaOlaQuad", lineno=6, caller=callloc)
         ).output()
-      
+
         H2 = SWPolyMulGadget(
-         f_pp, g_f_p, callloc=Location("LaOlaQuad", lineno=7, caller=callloc)
+            f_pp, g_f_p, callloc=Location("LaOlaQuad", lineno=7, caller=callloc)
         ).output()
         H3 = SWPolyMulGadget(
-            f_pp, g_f_pp, callloc=Location("LaOlaQuad", lineno=8, caller=callloc)
+            f_pp,
+            g_f_pp,
+            callloc=Location("LaOlaQuad", lineno=8, caller=callloc),
         ).output()
         res = SWComp(
             H0,
@@ -2254,17 +2242,18 @@ class LaolaLinearMultGadget(Gadget[PolyEnc]):
             callloc=Location("LaOlaQuad", lineno=9, caller=callloc),
         )
 
-    
         self.randoms.update(res.randoms)
         res_enc = res.output()
 
         self.output_enc = f.copy(
             sharing=res_enc.sharing,
-            secrets=[s * (a_p*s + b_p) for s in f.secrets],
+            secrets=[s * (a_p * s + b_p) for s in f.secrets],
         )
 
     @classmethod
-    def with_defaults(cls: Type[Self], d: int, k: int, e: int, a: int, b:int, F) -> Self:
+    def with_defaults(
+        cls: Type[Self], d: int, k: int, e: int, a: int, b: int, F
+    ) -> Self:
         n = d + e + 1
         F_enc, rc = make_f_encodings(d, e, n, k, F)
         instance = cls(F_enc, d, a, b, rc, callloc=None)
