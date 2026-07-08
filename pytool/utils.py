@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright 2025-2026 Max Planck Institute for Security and Privacy (MPI-SP), University of Luebeck Institute for IT-Security (ITS)
+from numbers import Integral
 from typing import Optional, Set, Callable
 from sage.rings.polynomial.multi_polynomial import MPolynomial
 from observations import Location, ObservableValue, mk_obsval
@@ -8,6 +9,17 @@ from itertools import count
 
 ObsMat = list[list[ObservableValue]]
 ObsList = list[ObservableValue]
+
+
+def coerce_int_to_field_element(F, value):
+    if isinstance(value, Integral) and hasattr(F, "fetch_int"):
+        order = F.order()
+        if value < 0 or value >= order:
+            raise ValueError(
+                f"Integer field constant {value} is outside the range [0, {order}) for {F}."
+            )
+        return F.fetch_int(value)
+    return F(value)
 
 
 def transpose(M: ObsMat) -> ObsMat:
@@ -25,18 +37,14 @@ def to_obsval_factory(x: Encoding) -> Callable[[MPolynomial], ObservableValue]:
     return to_obsval
 
 
-def new_random_var(
-    x: Encoding, rc: count, acc: Set[MPolynomial]
-) -> MPolynomial:
+def new_random_var(x: Encoding, rc: count, acc: Set[MPolynomial]) -> MPolynomial:
     name = f"R_{next(rc)}"
     r = x.variable_ring(name)
     acc.add(r)
     return r
 
 
-def matmul_obs(
-    A: ObsMat, B: ObsMat, zero: ObservableValue, loc: Location
-) -> ObsMat:
+def matmul_obs(A: ObsMat, B: ObsMat, zero: ObservableValue, loc: Location) -> ObsMat:
     assert A and B and len(A[0]) == len(B), "Shape mismatch for matmul_obs"
     a_rows, a_cols, b_cols = len(A), len(A[0]), len(B[0])
     out = zeros(a_rows, b_cols, zero)
@@ -76,13 +84,8 @@ def colscale_obs(
     return out
 
 
-def to_obsmat(
-    A, var_ring, to_obsval: Callable[[MPolynomial], ObservableValue]
-) -> ObsMat:
-    return [
-        [to_obsval(var_ring((A[i, j]))) for j in range(A.ncols())]
-        for i in range(A.nrows())
-    ]
+def to_obsmat(A, var_ring, to_obsval: Callable[[MPolynomial], ObservableValue]) -> ObsMat:
+    return [[to_obsval(var_ring((A[i, j]))) for j in range(A.ncols())] for i in range(A.nrows())]
 
 
 def mk_loc_factory(name: str, parent: Optional[Location]):
