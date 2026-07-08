@@ -1,8 +1,8 @@
 from sage.all import GF
-from polymasking_gadgets import LaolaMultGadget, LaolaQuadGadget
+from polymasking_gadgets import LaolaMultGadget, LaolaQuadGadget, LaolaLinearMultGadget
 from isw_gadgets import ISWMult, AdditiveSecMult, AdditiveSecMultLookup
 
-F = GF(7)  # underlying field used for arithmetic
+F = GF(2**8)  # underlying field used for arithmetic
 num_worker = 1  # number of threads used during verification, crank this up for larger runs near linear speedup
 continue_on_fail = False  # by default the verification terminates on the first tuple that cannot be verified. Setting this to true will verify all tuples.
 
@@ -19,7 +19,30 @@ def test_laola(d: int, k: int, e: int) -> None:
         F, #
     )
     # all gadgets implement a functional correctness call, which tests the actual computation on an encoding against a specification on secrets
-    #laola.functional_correctness()
+    laola.functional_correctness()
+    # verification of strong non-interference notion, probing security is available as laola.verify_t_PS and non-interference as laola.verify_t_NI
+    laola.verify_t_SNI(
+        d,  # test for security against all probe sets of size d
+        max_memory_mb=32000,
+        num_worker=num_worker,
+        continue_on_fail=continue_on_fail,
+    )
+
+def test_linear_laola(d: int, k: int, e: int, a: int, b: int) -> None:
+    # for larger parameters and complex gadgets this can be expensive, laola is one of these so it is expected to slow down at around d>3, e>3, k>3.
+    laola = LaolaLinearMultGadget.with_defaults(
+        # WITH DEFAULT: assert k == 1 or k > d // 2, (
+        #     f"Skipped LaolaMultGadget for k={k} and d={d} (k must be <= d//2)"
+        # )
+        d, #d: degree of polynomial
+        k, #nr of encoded Secrets
+        e,
+        a,
+        b, #
+        F, #
+    )
+    # all gadgets implement a functional correctness call, which tests the actual computation on an encoding against a specification on secrets
+    laola.functional_correctness()
     # verification of strong non-interference notion, probing security is available as laola.verify_t_PS and non-interference as laola.verify_t_NI
     laola.verify_t_SNI(
         d,  # test for security against all probe sets of size d
@@ -40,8 +63,6 @@ def test_laola_quad(d: int, k: int, e: int) -> None:
         F, #
     )
     out = laola.output()
-
-   
 
     # all gadgets implement a functional correctness call, which tests the actual computation on an encoding against a specification on secrets
     laola.functional_correctness()
@@ -130,6 +151,7 @@ if __name__ == "__main__":
                 ):  # k must be less than or equal to d, cant encode more secrets than degree
                     continue
                 test_laola_quad(d, k, e)
+                test_linear_laola(d,k,e, 4,1)
                 test_laola(d,k,e)
                 #test_ISW_mult(d)
                 #test_ISW_secmult(d)
