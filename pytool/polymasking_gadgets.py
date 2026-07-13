@@ -1583,7 +1583,7 @@ class LaolaMultGadget(Gadget[PolyEnc]):
         return Fp_enc, Fpp_enc, randoms
 
 
-class LaolaQuadGadget(Gadget[PolyEnc]):
+class LaolaSquareGadget(Gadget[PolyEnc]):
     """
     LAOLA multiplication of two polynomial encodings.
     """
@@ -1596,7 +1596,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
         callloc: Optional[Location],
     ):
         if not isinstance(f, PolyEnc):
-            raise TypeError("LaolaQuadGadget requires PolyEnc input.")
+            raise TypeError("LaolaSquareGadget requires PolyEnc input.")
 
         # if f.k > 1 and f.k > d // 2:
         #     raise ValueError(f"Degree {d} is too low for k={f.k}.")
@@ -1642,7 +1642,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             lambda_hat,
             A_tilde,
             rc,
-            callloc=Location("LaOlaQuad", lineno=1, caller=callloc),
+            callloc=Location("LaolaSquare", lineno=1, caller=callloc),
         )
 
         self.randoms.update(rands_f)
@@ -1664,33 +1664,33 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             0,
             A_tilde,
             rc,
-            callloc=Location("LaOlaQuad", lineno=2, caller=callloc),
+            callloc=Location("LaolaSquare", lineno=2, caller=callloc),
         )
 
         self.randoms.update(rands_z)
 
         fz_p = SWPolyAddGadget(
-            f_p, z_p, callloc=Location("LaOlaQuad", lineno=3, caller=callloc)
+            f_p, z_p, callloc=Location("LaolaSquare", lineno=3, caller=callloc)
         ).output()
 
         fz_pp = SWPolyAddGadget(
-            f_pp, z_pp, callloc=Location("LaOlaQuad", lineno=4, caller=callloc)
+            f_pp, z_pp, callloc=Location("LaolaSquare", lineno=4, caller=callloc)
         ).output()
 
         # hier so linearfunktion anwenden?
 
         H0 = SWPolyMulGadget(
-            f_p, fz_p, callloc=Location("LaOlaQuad", lineno=5, caller=callloc)
+            f_p, fz_p, callloc=Location("LaolaSquare", lineno=5, caller=callloc)
         ).output()
         H1 = SWPolyMulGadget(
-            f_p, fz_pp, callloc=Location("LaOlaQuad", lineno=6, caller=callloc)
+            f_p, fz_pp, callloc=Location("LaolaSquare", lineno=6, caller=callloc)
         ).output()
 
         H2 = SWPolyMulGadget(
-            f_pp, fz_p, callloc=Location("LaOlaQuad", lineno=7, caller=callloc)
+            f_pp, fz_p, callloc=Location("LaolaSquare", lineno=7, caller=callloc)
         ).output()
         H3 = SWPolyMulGadget(
-            f_pp, fz_pp, callloc=Location("LaOlaQuad", lineno=8, caller=callloc)
+            f_pp, fz_pp, callloc=Location("LaolaSquare", lineno=8, caller=callloc)
         ).output()
         res = SWComp(
             H0,
@@ -1700,7 +1700,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             d,
             A_tilde,
             rc,
-            callloc=Location("LaOlaQuad", lineno=9, caller=callloc),
+            callloc=Location("LaolaSquare", lineno=9, caller=callloc),
         )
 
         self.randoms.update(res.randoms)
@@ -2127,7 +2127,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
 
 class LaolaLinearMultGadget(Gadget[PolyEnc]):
     """
-    LAOLA multiplication of two polynomial encodings.
+    LAOLA multiplication of one polynomial encoding f with g(f), where g=a*x+b.
     """
 
     def __init__(
@@ -2140,7 +2140,7 @@ class LaolaLinearMultGadget(Gadget[PolyEnc]):
         callloc: Optional[Location],
     ):
         if not isinstance(f, PolyEnc):
-            raise TypeError("LaolaQuadGadget requires PolyEnc input.")
+            raise TypeError("LaolaLinearMultGadget requires PolyEnc input.")
 
         # if f.k > 1 and f.k > d // 2:
         #     raise ValueError(f"Degree {d} is too low for k={f.k}.")
@@ -2186,7 +2186,7 @@ class LaolaLinearMultGadget(Gadget[PolyEnc]):
             lambda_hat,
             A_tilde,
             rc,
-            callloc=Location("LaOlaQuad", lineno=1, caller=callloc),
+            callloc=Location("LaolaLinearMult", lineno=1, caller=callloc),
         )
         self.randoms.update(rands_f)
         zeros = f.copy(
@@ -2206,17 +2206,17 @@ class LaolaLinearMultGadget(Gadget[PolyEnc]):
             0,
             A_tilde,
             rc,
-            callloc=Location("LaOlaQuad", lineno=2, caller=callloc),
+            callloc=Location("LaolaLinearMult", lineno=2, caller=callloc),
         )
 
         self.randoms.update(rands_z)
 
         fz_p = SWPolyAddGadget(
-            f_p, z_p, callloc=Location("LaOlaQuad", lineno=3, caller=callloc)
+            f_p, z_p, callloc=Location("LaolaLinearMult", lineno=3, caller=callloc)
         ).output()
 
         fz_pp = SWPolyAddGadget(
-            f_pp, z_pp, callloc=Location("LaOlaQuad", lineno=4, caller=callloc)
+            f_pp, z_pp, callloc=Location("LaolaLinearMult", lineno=4, caller=callloc)
         ).output()
 
         a_p = f_p.variable_ring(coerce_int_to_field_element(f_p.field, a))
@@ -2246,19 +2246,19 @@ class LaolaLinearMultGadget(Gadget[PolyEnc]):
         )
 
         H0 = SWPolyMulGadget(
-            f_p, g_f_p, callloc=Location("LaOlaQuad", lineno=5, caller=callloc)
+            f_p, g_f_p, callloc=Location("LaolaLinearMult", lineno=5, caller=callloc)
         ).output()
         H1 = SWPolyMulGadget(
-            f_p, g_f_pp, callloc=Location("LaOlaQuad", lineno=6, caller=callloc)
+            f_p, g_f_pp, callloc=Location("LaolaLinearMult", lineno=6, caller=callloc)
         ).output()
 
         H2 = SWPolyMulGadget(
-            f_pp, g_f_p, callloc=Location("LaOlaQuad", lineno=7, caller=callloc)
+            f_pp, g_f_p, callloc=Location("LaolaLinearMult", lineno=7, caller=callloc)
         ).output()
         H3 = SWPolyMulGadget(
             f_pp,
             g_f_pp,
-            callloc=Location("LaOlaQuad", lineno=8, caller=callloc),
+            callloc=Location("LaolaLinearMult", lineno=8, caller=callloc),
         ).output()
         res = SWComp(
             H0,
@@ -2268,7 +2268,7 @@ class LaolaLinearMultGadget(Gadget[PolyEnc]):
             d,
             A_tilde,
             rc,
-            callloc=Location("LaOlaQuad", lineno=9, caller=callloc),
+            callloc=Location("LaolaLinearMult", lineno=9, caller=callloc),
         )
 
         self.randoms.update(res.randoms)

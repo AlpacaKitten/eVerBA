@@ -1,5 +1,5 @@
 from sage.all import GF
-from polymasking_gadgets import LaolaMultGadget, LaolaQuadGadget, LaolaLinearMultGadget
+from polymasking_gadgets import LaolaMultGadget, LaolaSquareGadget, LaolaLinearMultGadget
 from isw_gadgets import ISWMult, AdditiveSecMult, AdditiveSecMultLookup
 
 F = GF(2**8)  # underlying field used for arithmetic
@@ -41,8 +41,13 @@ def test_linear_laola(d: int, k: int, e: int, a: int, b: int) -> None:
         b, #
         F, #
     )
+    out = laola.output()
+
     # all gadgets implement a functional correctness call, which tests the actual computation on an encoding against a specification on secrets
     laola.functional_correctness()
+    for i,o in enumerate(out.get_encoded_shares()):
+        print(f"share:{i} {o}")
+
     # verification of strong non-interference notion, probing security is available as laola.verify_t_PS and non-interference as laola.verify_t_NI
     laola.verify_t_SNI(
         d,  # test for security against all probe sets of size d
@@ -51,9 +56,9 @@ def test_linear_laola(d: int, k: int, e: int, a: int, b: int) -> None:
         continue_on_fail=continue_on_fail,
     )
 
-def test_laola_quad(d: int, k: int, e: int) -> None:
+def test_laola_square(d: int, k: int, e: int) -> None:
     # for larger parameters and complex gadgets this can be expensive, laola is one of these so it is expected to slow down at around d>3, e>3, k>3.
-    laola = LaolaQuadGadget.with_defaults(
+    laola = LaolaSquareGadget.with_defaults(
         # WITH DEFAULT: assert k == 1 or k > d // 2, (
         #     f"Skipped LaolaMultGadget for k={k} and d={d} (k must be <= d//2)"
         # )
@@ -150,8 +155,8 @@ if __name__ == "__main__":
                     k > d
                 ):  # k must be less than or equal to d, cant encode more secrets than degree
                     continue
-                test_laola_quad(d, k, e)
-                test_linear_laola(d,k,e, 4,1)
+                test_laola_square(d, k, e)
+                test_linear_laola(d,k,e, 3,1)
                 test_laola(d,k,e)
                 #test_ISW_mult(d)
                 #test_ISW_secmult(d)
