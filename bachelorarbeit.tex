@@ -1,1 +1,237 @@
-/home/kaii/Documents/uni/sose26/ba/bachelorarbeit/bachelorarbeit/bachelorarbeit.tex
+\documentclass[english, version-2020-11]{uzl-thesis}
+
+%\UzLStyle{alegrya modern design}
+\UzLStyle{pagella basic design}
+\usepackage{mathrsfs}
+\usepackage{amssymb} 
+
+\UzLThesisSetup{
+  Bachelorarbeit,
+  Verfasst = {am}{Institut für IT-Sicherheit},
+  Titel auf Deutsch = {Hallo Welt},
+  Titel auf Englisch = {Hello World},
+  Autor = {Luise Pfeiffer},
+  Betreuerin = {Prof. Dr. Sebastian Berndt},
+  Studiengang = {IT-Sicherheit},
+  Datum = {1. Juli 2020},
+  Abstract = {It is about saying ``hello'' to the world.},
+  Zusammenfassung = {Es geht darum, der Welt »Hallo« zu sagen.},
+  Numerische Bibliographie
+}
+
+\begin{document}
+  \chapter{Introduction}
+  Here I will talk about the relevance of gadgets for the field
+  \cite{Kernighan1974}
+  \cite{Coron2015}
+  
+  
+  \chapter{Background and Related Work}
+  Hello World!
+    \section{Gadget-Sharing}
+    Suppose you have a circuit where two values a and b get multiplied resulting in a value c. 
+    a and b have to remain secret. This secrecy can be in danger if an evil party has access to the circuit, as the evil party could just measure the electricity going through the circuit and draw conclusions about a and b from that.
+    We do not want that and have to find ways to keep our values a secret, even when Eve is allowed to read them.
+    This is where Gadget sharing comes into play. instead of multiplying a and b directly, we will split them into multiple parts and do the sensitive calculations on them instead. We call the different parts \textit{shares} and the combined value an encoding. Encodings are symbolized by letters in \textbf{bold} font.
+
+    \subsection{Shamir's Secret Sharing}
+    Shamir's secret sharing is a very important part of security. It is a way to divide data into n pieces so that you need at least k of them to reconstruct the data, but even complete knowledge of $k-1$ pieces reveals nothing at all about the data. \cite{shamirsecret}
+    A simple approach is splitting $a$ into $a_1,....,a_k$, were we draw random values for $a_1$ to $a_{k-1}$ and choose $a_k$ in such a way that $a_1 \oplus ... \oplus a_k=a$. If we now loose even one of the $k$ parts, we are not able to reconstruct our original value. For $k=2$, tis is equal to the classical one-time-pad we know from symmetric cryptography.
+    When talking about gadgets specifically, font. If we split our values as described, we call this addititve sharing.
+    Instead of a simple multiplication $a \cdot b =c$, we instead multiply the shares individually and compute a new set of sharings, that when XORed together leave us with the same value as our simple, insecure multiplication: $\mathbf{a} \cdot_G \mathbf{b}= (a_1 \oplus ... \oplus a_k)\cdot_G(b_1\oplus ...\oplus b_k)=(c_1\oplus...\oplus c_k)= \mathbf{c}$
+
+    \section{Polynomial Gadget Sharing}
+
+
+
+    \section{SNI-Security}
+    \section{The LaOlA Gadget}
+    \subsection{The Splitred-Algorithm}
+    The SplitRed-Algorithm is the core algortihm I tackled in this thesis, so I will make some room here to explain it properly.
+    As I am working in the eVer framework a lot, I will use the version of the alorithm provieded by Gourjon, Orls, Pauls and Treff in their paper on the framework \cite{eVer2026}
+    The general idea of the algorithm is to take one polynomial Encoding $\mathbf{F}$ of degree $d$ and split it into two polynomial Encodings of degree $d$. The two resulting polynomials can be added together to retrieve the original secret encoded by $\mathbf{F}$, but if added together, 
+    the degree of the resulting polynomial halves. This is neat, because if we multiply two polynomials of degree $d/2$, the resulting polynomialwill once again have a degree of $d$. 
+    We can therefore write $\mathbf{F}$ as $\mathbf{F}'+\mathbf{F}''$.
+
+    To achieve the degree-reduction that happens when adding $\mathbf{F}'$ to $\mathbf{F}''$, we construct them the following way: 
+    To construct $\mathbf{F}'$, the first half of the shares of $\mathbf{F}$ gets rescaled to 
+
+    
+    \begin{Pseudocode}
+  $\mathbf{Input}$: Encoding $\mathbf{F}$ and Target degree d'
+  $\mathbf{Output}$: Encodings $\mathbf{F'}$, $\mathbf{F''}$ so that Dec(SWAdd($\mathbf{F'}$, $\mathbf{F''}$))= Dec($\mathbf{F}$) 
+    and Deg(SWAdd($\mathbf{F'}$, $\mathbf{F''}$))=d'
+
+    if d'=d then 
+      return $\mathbf{F}$,0
+    for j $\in \lceil n/2 \rceil$ do
+      $ d_{enc}$ <- d - j if j < d+1-k else d
+    for j $\in \lfloor n/2 \rfloor$ do
+      $ \mathbf{G}^j$ <- $\hat{ \mathbf{G}}^j$
+    if n mod 2 = 1 then 
+      $ \mathbf{G}^{\lfloor n/2 \rfloor -1}$ <- SWAdd($ \mathbf{G}^{\lfloor n/2 \rfloor -1},\hat{ \mathbf{G}}^{\lfloor n/2 \rfloor -1}$)
+    for j $\in \lfloor n/2 \rfloor$ do
+      for i $\in \lbrack n \rbrack$ do
+        $\mathcal{F}_i'^j$<- $\hat{\lambda}^i_j \cdot F_j$
+      $\mathcal{F}^j$ <- SWAdd$(\mathcal{F}'^j, \mathbf{G}^j)$
+      $\mathbf{F}'$ <- SWAdd$(\mathbf{F}', \mathcal{F}^j)$
+    for j $\in \lceil n/2 \rceil$ do
+      $ d'_{enc}$ <- d' - j if j < d'+1-k else d'
+      $\mathbf{G}^{j+\lfloor n/2 \rfloor}$<- SWSub($opt-ZEnc_n^{d'_{enc}}, \hat{\mathbf{G}}^j$)
+      for i $\in \lbrack n \rbrack$ do 
+        $\mathcal{F}_i'^{j+\lfloor n/2 \rfloor}$ <- $\hat{\lambda}^i_{j+ \lfloor n/2 \rfloor} \cdot F_{j+ \lfloor n/2 \rfloor}$
+      $\mathcal{F}^{j+\lfloor n/2 \rfloor}$ <- SWAdd ( $\mathcal{F}'^{j+\lfloor n/2 \rfloor}$, $\mathbf{G}^{j+\lfloor n/2 \rfloor}$)
+      $\mathbf{F}'' $<- SWAdd($\mathbf{F}'', \mathcal{F}^{j+\lfloor n/2 \rfloor}$)
+    
+    return $\mathbf{F}$', $\mathbf{F}''$
+
+    \end{Pseudocode} 
+    Let's take a closer look at what happens here: The algorithm takes a polynomial encoding $\mathbf{F}$ of grade $d$ and splits it into two other encodings $\mathbf{F}'$ and $\mathbf{F}''$.
+    Those two output polynomials have a degree of $d$ as well, but 
+
+    \section{eVer}
+
+  \chapter{Implementing a New Gadget for Additive Sharing}
+
+  \chapter{Extending LaOla by designing a LAOla-Variant}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% SQUARING GADGET                                                                                                                                                                                        %
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    \section{A Squaring-Gadget}
+
+    The most expensive part about Laola is the Splitred-call. When a secret is squared, e.g. $\mathbf{G}=\mathbf{F}$, Splitred is called twice with the same input.
+    Taking a look at at the calculations themselves, here is what happens:
+    \[\mathbf{F}² = \mathbf{F} \times \mathbf{F} = (\mathbf{F'} +\mathbf{F''})(\mathbf{F'''}+\mathbf{F}^{IV}) = \mathbf{F'F'''} +\mathbf{F'F}^{IV} + \mathbf{F''F'''} + \mathbf{F''F}^{IV}\]
+    It is important that $\mathbf{F'} +\mathbf{F''}$ and $\mathbf{F'''}+\mathbf{F}^{IV}$ encode the same secret. The idea of this Laola-Variant rests on this fact, as I was trying to remove one of the two splitred-calls.
+    If we take this approach at its most basic, we get \[\mathbf{F}²=(\mathbf{F'}+\mathbf{F''})²= \mathbf{F'}² +2*\mathbf{F'}\mathbf{F''} + \mathbf{F''}²\]. 
+
+    Looking at the Fact that we work in \textbf{GF28}, the middle term cancels out. leaving us with $\mathbf{F'}² + \mathbf{F''}²$. We can calculate this securely, because none of the Terms hides the full secret.
+
+    However, once a calculation is made on a different field, this no longher holds, and simply calculating $\mathbf{F'}\mathbf{F''}$ will break SNI, because they are linearly dependent. 
+    
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% CONQUERING LINEAR DEPENDENCY                                                                                                                                                                           %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    \subsection{Conquering linear dependency}
+    The most brute-fore approach is to call a new standard Laola-Gadget on the two missing parts. However, at almost 3 times the original cost, this is horrendoulsy expensive. 
+    I then tried to create a second variant of $\mathbf{F'}$ and $\mathbf{F''}$ by adding more randomness to them, hoping that this might be enough. For this, I tried multiple things:
+    First, i tried simply refreshing $\mathbf{F'}$ and $\mathbf{F''}$ by using the OptRefresh-Gadget that is already implemented in eVer. This however was not enough to reach SNI, so I hasd to look at different approaches.
+    \\
+    If we split a zero-encoding which is then added onto the second part of the splitted polynomial, thsi should add enough randomness to guarantee Security. 
+    In the worst case szenario we would have the same costs as the original Laola, but there seemed to be opportunities to simplify splitred for the zero-encoding. The calculation we want to make looks like this (where $\mathbf{Z}'$ and $\mathbf{Z''}$ symbolize a split polynomial that encodes a zero):
+    \[\mathbf{F}²=(\mathbf{F'}+\mathbf{F''})(\mathbf{F'}+\mathbf{F''}+\mathbf{Z'}+\mathbf{Z''})= (\mathbf{F'}+\mathbf{F''})((\mathbf{F'}+\mathbf{Z'})+(\mathbf{F''}+\mathbf{Z''}))\] 
+    
+    in code, this looks like this:
+    \begin{Pseudocode}
+    $\mathbf{Zero}$ <- zero encoding of degree d
+    $\mathbf{F'},\mathbf{F''}$ <- $SplitRed(\mathbf{F}, d/2)$
+    $\mathbf{Z'},\mathbf{Z''}$ <- $SplitRed(\mathbf{Zero}, 0)$
+    $\tilde{\mathbf{F}}' $<-$ SWAdd(\mathbf{F}',\mathbf{Z}')$
+    $\tilde{\mathbf{F}}'' $<-$ SWAdd(\mathbf{F}'', \mathbf{Z}'')$
+    
+    //final multiplication:
+    $\mathbf{H}^{(0)}$ <-$SWMult(\tilde{\mathbf{F}}',\mathbf{F}')$
+    $\mathbf{H}^{(1)}$ <-$SWMult(\tilde{\mathbf{F}}',\mathbf{F}'')$
+    $\mathbf{H}^{(2)}$ <-$SWMult(\tilde{\mathbf{F}}'',\mathbf{F}')$
+    $\mathbf{H}^{(3)}$ <-$SWMult(\tilde{\mathbf{F}}'',\mathbf{F}'')$
+
+    $\mathbf{Q}$ <- $SWComp(\mathbf{H}^{(0)},\mathbf{H}^{(1)},\mathbf{H}^{(2)},\mathbf{H}^{(3)}) $
+
+    \end{Pseudocode}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% IMPROVING SPLITRED FOR ZERO-ENCODING                                                                                                                                                                   %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    \subsection{Improving SplitRed for Zero-Encodings}
+      If we take a look at the original SplitRed-Algorithms, we can spot some cases we can simplify here:
+      For one, our target degree is always 0, so we can just skip all the cases where we encode a secret in the first bytes.
+      We also don't have a real secret we want to encode, so we can ommit $\lambda$ completely.
+      After a bit of trial and error, it turned out that all of the loops only need to go to $\lfloor n/2 \rfloor$ to reach SNI. 
+      This all culminates in a pretty decent performance-boost, since we get rid of a lot of expensive randomness. The pseudocode now looks like this:
+      \begin{Pseudocode}
+for j in $\lfloor n/2 \rfloor$ do
+    d_enc = $d-j$ if $d+1-k>j$ else $d$
+    $\hat{G}$ <- $OptZEnc^{d_enc}_n$
+for j in $\lfloor n/2 \rfloor$ do
+    $G_j$ <- $\hat{G}_j$
+if n%2=1 do
+    $G^{\lfloor n/2 \rfloor-1}$<- $SWAdd(F^{\lfloor n/2 \rfloor-1}, \hat{G}^{\lfloor n/2 \rfloor})$
+for j in $\lfloor n/2 \rfloor$ do
+    F'<-$SWAdd(F',G^j)$
+for j in $\lfloor n/2 \rfloor$ do
+    $G^{j+\lfloor n/2 \rfloor}<- SWSub(OptZEnc⁰_n, \hat{G}^j)$
+for j in [$\lfloor n/2 \rfloor$, n] do
+    F''<-$SWAdd(F'', G^{j+\lfloor n/2 \rfloor}$
+      \end{Pseudocode}
+
+    \section{Improvements to the original LaOla}
+    \section{Adding a Linear Function}
+
+  \chapter{Extention to AES-Sboxes}
+  \chapter{Analysis and Security Implications}
+
+
+  \chapter{Conclusion and Outlook}
+  Saying hello world is quite easy.
+
+  \begin{bibtex-entries}
+    @TechReport{Kernighan1974,
+      author = {Brian Kernighan},
+      title = {Programming in C -- A Tutorial},
+      institution = {Bell Laboratories},
+      year = {1974}
+    }
+    @misc{Coron2015,
+      author = {Jean-Sebastien Coron and Emmanuel Prouff and Matthieu Rivain and Thomas Roche},
+      title = {Higher-Order Side Channel Security and Mask Refreshing},
+      howpublished = {Cryptology {ePrint} Archive, Paper 2015/359},
+      year = {2015},
+      url = {https://eprint.iacr.org/2015/359}
+    }
+    @misc{cryptoeprint:2024/1025,
+      author = {Paula Arnold and Sebastian Berndt and Thomas Eisenbarth and Maximilian Orlt},
+      title = {Polynomial sharings on two secrets: Buy one, get one free},
+      howpublished = {Cryptology {ePrint} Archive, Paper 2024/1025},
+      year = {2024},
+      url = {https://eprint.iacr.org/2024/1025}
+    }
+    @misc{eVer2026,
+      author = {Marc Gourjon and Maximilian Orlt and Pajam Pauls and Alexander Treff},
+      title = {{eVer}: Universal and Automated Verification of Side-Channel Security for Additive, Inner Product, Polynomial and General Code-Based Masking},
+      howpublished = {Cryptology {ePrint} Archive, Paper 2026/208},
+      year = {2026},
+      url = {https://eprint.iacr.org/2026/208}
+    }   
+    @InProceedings{10.1007/978-3-319-06734-6_16,
+      author="Grosso, Vincent and Prouff, Emmanuel and Standaert, Fran{\c{c}}ois-Xavier",
+      editor="Pointcheval, David and Vergnaud, Damien",
+      title="Efficient Masked S-Boxes Processing -- A Step Forward --",
+      booktitle="Progress in Cryptology -- AFRICACRYPT 2014",
+      year="2014",
+      publisher="Springer International Publishing",
+      address="Cham",
+      pages="251--266"}
+    @article{shamirsecret,
+      author = {Shamir, Adi},
+      title = {How to share a secret},
+      year = {1979},
+      issue_date = {Nov. 1979},
+      publisher = {Association for Computing Machinery},
+      address = {New York, NY, USA},
+      volume = {22},
+      number = {11},
+      issn = {0001-0782},
+      url = {https://doi.org/10.1145/359168.359176},
+      doi = {10.1145/359168.359176},journal = {Commun. ACM},
+      month = nov,
+      pages = {612–613},
+      numpages = {2},
+    }
+    
+
+  \end{bibtex-entries}
+\end{document}
