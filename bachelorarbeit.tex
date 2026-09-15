@@ -4,63 +4,59 @@
 \UzLStyle{pagella basic design}
 \usepackage{mathrsfs}
 \usepackage{amssymb} 
-\usetikzlibrary{decorations.pathreplacing,angles,quotes}
+\usetikzlibrary{decorations.pathreplacing,angles,quotes,arrows.meta, positioning}
 \tikzset{thesis box shapes} 
 
 
 \UzLThesisSetup{
   Bachelorarbeit,
   Verfasst = {am}{Institut für IT-Sicherheit},
-  Titel auf Deutsch = {Hallo Welt},
-  Titel auf Englisch = {Hello World},
+  Titel auf Deutsch = {Entwicklung und Implementation eines Multiplikationsgadgets für polynomielles Sharing},
+  Titel auf Englisch = {Development and implementation of a multiplication gadget for polynomial sharing},
   Autor = {Luise Pfeiffer},
   Betreuerin = {Prof. Dr. Sebastian Berndt},
   Mit Unterstützung von = {Paula Arnold, Pajam Pauls},
   Studiengang = {IT-Sicherheit},
-  Datum = {1. Juli 2020},
+  Datum = {16.Oktober 2026},
   Abstract = {.},
   Zusammenfassung = {.},
   Numerische Bibliographie
 }
 
 \begin{document}
-  \chapter{Introduction}
+  \chapter{Introduction}  
  
-    In theory, we have a lot of great cryptographic protocols that can be proven secure mathematically. They are commonly in use and enable us to communicate between two or more parties in a secure way. However, the advertised security often doesn't hoöld once the attacker finds a different angle to attack the protocol. Those so-called side-channels open up a whole lot of different possibilities for leakages and security breaks. One of the hardest ways to mitigate those side-channel-attacks takes place once the attacker has physical posession of the system calculations take place on. It is very important to keep the different steps for the calculation secure, so that a malicious party can't reconstruct secret data from there. 
+    In theory, we have a lot of great cryptographic protocols that can be proven secure mathematically. They are commonly in use and enable us to communicate between two or more parties securely. However, the advertised security often doesn't hold once the attacker finds a different angle to attack the protocol. Those so-called side-channels open up a lot of different possibilities for leakages and security breaks. One of the hardest ways to mitigate those side-channel-attacks takes place once the attacker has physical possession of the system calculations take place on. It is very important to keep the different steps for the calculation secure, so that a malicious party can't reconstruct secret data from there. 
 
     A specific version of this problem will be looked at in this thesis: Suppose you have a circuit where two values a and b get multiplied resulting in a value c. 
     a and b have to remain secret. This secrecy can be in danger if an evil party has access to the circuit, as the evil party could just measure the electricity going 
     through the circuit and draw conclusions about a and b from that.
     We do not want that and have to find ways to keep our values a secret, even when Eve is allowed to read them.
-    This is where Gadget sharing comes into play. instead of multiplying a and b directly, we will mask them by splitting them in a way that they are never processed in their raw form. Typically this is done by splitting the values into mutliple parts, which are processed individually. This way, no single intermediate computation will leak parts of the secret. We call the different parts \textit{shares} and the combined value an encoding. Encodings are symbolized by letters in \textbf{bold} font. Our goal is to achieve security, even when some of the shares get leaked.
+    This is where Gadget sharing comes into play. Instead of multiplying a and b directly, we will mask them by splitting them in a way that they are never processed in their raw form. Typically, this is done by splitting the values into multiple parts, which are processed individually. This way, no single intermediate computation will leak parts of the secret. We call the different parts \textit{shares} and the combined value an encoding. Encodings are symbolized by letters in \textbf{bold} font. Our goal is to achieve security, even when some of the shares get leaked.
     
     \begin{definition}[Shamir's Secret Sharing]
       Shamir's secret sharing is a way to divide data into n pieces so that you need at least k of them to reconstruct the data, but even complete knowledge of $k-1$ pieces reveals 
       nothing at all about the data. \cite{shamirsecret}
     \end{definition}
 
-    As always, the tension between theneed for security and the need for efficient computations leads to interesting problems: how do we design gadgets in such a way that all security standards can be held up while still keeping the computation time to a reasonable limit?
-\section{Scope}
-What was looked at
-Using eVer, 
-\section{Contributions}
-In this thesis, the LaOla-Multiplication gadget is looked at. I designed two more efficient variants:
+    As always, the tension between the need for security and the need for efficient computations leads to interesting problems: how do we design gadgets in such a way that all security standards can be held up while still keeping the computation time to a reasonable limit?
+\section{Scope and Contributions}
+
+In this thesis, I looked at the LaOla-Multiplication gadget used for multiplying two polynomially masked secrets. I designed two more efficient variants of the original gadget:
 \begin{itemize}
-  \item The first variant, \textbf{LaolaSquare}, allows us to square a polynomially masked secret without the costs of a full LaOla-Operation. Instead of two calls of SplitRed on the same masking, SplitRed is only called once. To hide the secret during the multiplication, a Zero-Encoding is split into two parts using a simplified version of the SplitRed-Algorithm. We then add the split parts of the secret onto it, creating the second part for our multiplication. Both parts can now be multiplied securely, and although the addition of the SplitRed-Variant inctroduces more complexity to the overall gadget, we get a huge efficiency boost out of it.
-  \item the second variant, \textbf{LaOlaLin}, builds on the first one. It adds a linear function in the form of $a\cdot x+b$, so that for $y=ax+b$, $x\cot y$ can be calculated quite easily. For this, we follow the same procedure as we did for LaolaSquare, but in addidion multiply both halfs of the second part by $a$ and add $b$ to one of them. 
+  \item The first variant, \textbf{LaolaSquare}, allows us to square a polynomially masked secret without the costs of a full LaOla-Operation. Instead of two calls of SplitRed on the same masking, SplitRed is only called once. To hide the secret during the multiplication, a Zero-Encoding is split into two parts using a simplified version of the SplitRed-Algorithm. We then add the split parts of the secret onto it, creating the second part for our multiplication. Both parts can now be multiplied securely, and although the addition of the SplitRed-Variant introduces more complexity to the overall gadget, we get a huge efficiency boost out of it.
+  \item The second variant, \textbf{LaOlaLin}, builds on the first one. It adds a linear function in the form of $a\cdot x+b$, so that for $y=ax+b$, $x\cot y$ can be calculated quite easily. For this, we follow the same procedure as we did for LaolaSquare, but in addidion multiply both halfs of the second part by $a$ and add $b$ onto one of them. 
 \end{itemize}
-What did i achieve
+Furthermore, I found an improvement in the original SplitRed-Algorithm, which improves its complexity and runtime significantly and therefore improves both of the LaOla Variants as well as the original gadget. Most of this work was done using eVer, a framework for verifying gadgets automatically. Every finding was implemented and tested there.
+
+\section{Related Work}
+yeah i can relate to that
+
 \section{Structure of this Thesis}
-This thesis will first provide required background, specifically covering the broad Idea behind gadget sharing in more detail. Then an explanation of LaOla, the original gadget improved in this thesis, with its main algorithm, SplitRed, will be given. I will then present two variants and an improved version of the original algorithm. Finally, AES-SBoxes as a usecase and an outlook into future research will be given.
-TODO EXPLAIN RESULTS
-
-    
-
-
-
+This thesis will first provide an overview on gadget sharing, specifically covering the broad idea behind polynomial gadget sharing in more detail. Then an explanation of LaOla, the original gadget improved in this thesis, with its main algorithm, SplitRed, will be given. In chapter \ref{ch:additive}, an additive sharing gadget that I implemented in eVer will be repesented. I will then use capter \ref{ch:variants} to introduce two variants and an improved version of the original LaOla-Gadget that I developed and that represent the main findings of this thesis. Finally, AES-SBoxes as a possible use-case and an outlook into future research will be given.
   
-  
-  \chapter{Background and Related Work}
+  \chapter{Background}
+  \label{ch:background}
    
     For our purposes, we need a more formal definition of security. Specifically, we want our gadgets to show strong non-interference-characteristics.For this, We rely on the 
     definition made by Gourjon et.al. in their eVer-Paper:
@@ -72,31 +68,60 @@ TODO EXPLAIN RESULTS
     In simple terms, a gadget is $t$-SNI, if for every possible combination of $t$ or less outputvalues and values that might leak during the calculation, we still learn nothing 
     about the actual secret values being calculated.
 
-
-
     A simple approach is splitting $a$ into $a_1,....,a_k$, were we draw random values for $a_1$ to $a_{k-1}$ and choose $a_k$ in such a way that $a_1 \oplus ... \oplus a_k=a$. If 
     we now loose even one of the $k$ parts, we are not able to reconstruct our original value. For $k=2$, this is equal to the classical one-time-pad we know from symmetric 
-    cryptography. This concept is known as addititve sharing. because we add the shares together to get our value.
+    cryptography. This concept is known as addititve sharing. Because we add the shares together to get our value.
     Instead of a simple multiplication $a \cdot b =c$, we instead multiply the shares individually and compute a new set of sharings, that when XORed together leave us with the 
     same value as our simple, insecure multiplication: $\mathbf{a} \cdot_G \mathbf{b}= (a_1 \oplus ... \oplus a_k)\cdot_G(b_1\oplus ...\oplus b_k)=(c_1\oplus...\oplus c_k)= \mathbf{c}$.
-     The disadvantage of using additive sharing lies in its inability to handle faults. As soon as we introduce a singe fault, the value itself gets changed. So if we assume an 
-     active attacker model, we cannot guarantee security and correctness of the calculation.
+    The disadvantage of using additive sharing lies in its inability to handle faults. As soon as we introduce a singe fault, the value itself gets changed. So if we assume an active attacker model, we cannot guarantee security and correctness of the calculation.
 
 
     \section{Polynomial Gadget Sharing}
     With polynomial gadget sharing, instead of splitting a value into mutliple shares that get added together to recieve our secret, we insead build a polynomial of grade $k$. We 
     take our secret valuse $s$ and place it at the very end, then we draw k-1 random values: $\mathbf{A}= a + r_1x^1+r_2 x^2 +....+r_kx^k$. We then choose our shares as points on the polynomial.
-    To accurately reconstruct a secret from a polynomial of degree $d$, you need to know at least $d$ points on the polynomial. The neat thing here is that with enough points give, 
-    we can see faulty values introdced by an attacker. 
+    To accurately reconstruct a secret from a polynomial of degree $d$, you need to know at least $d$ points on the polynomial We call those points \textit{support points}. The neat thing here is that with enough points give, we can see faulty values introduced by an attacker.  Since the masking relies on the degree, it is also possible to reconstruct a secret with any shares, as long as enough of them are known. This removes the need to have all parties involved in the process, since infinitely many shares can be created without this changing. This differs to additive sharing, where we need to know all the shares to reconstruct the secret.
 
+
+    \subsection{mathematical stuff}
+    Let's take a look at the way we can do calculations and reconstruct the secret with such a polynomial. This section is based on chapter 5.3 of Sebastian Berndt's Script for his lecture on advanced Cryptology (\cite{SkriptBerndt}). Assume we have a secret value $a$ we want to hide and constructed the polynomial as described above. Let the polynomial be  $\mathbf{A}(x)= a_0 + a_1x^1+a_2 x^2 +....+a_kx^k=\sum_{i=0}^{k}a_ix^i$. 
+    \begin{lemma}[Polynomial interpolation] \cite{cryptoeprint:2024/1025}
+    Every polynomial \textbf{f} of degree at most $d$ can be interpolated from $d+1$ distinct point-value pairs $(\alpha_i,\mathbf{f}(\alpha_i))$
+
+    \end{lemma}
+    
+    If the polynomial is known to us, we can now simply receive a corresponding value to any given point $\alpha$ by calculating $\mathbf{A}(\alpha)$. For many support points $v_0,...,v_n$, we can easily write this as a matrix:
+    \[\begin{pmatrix}
+\alpha_0^0 & \alpha_0^1 & ... & \alpha_0^t\\
+\alpha_1^0 & \alpha_1^1 & ... & \alpha_1^t\\
+     &...       &     &\\
+\alpha_n^0 & \alpha_n^1 & ... & \alpha_n^t
+\end{pmatrix} \cdot(a_0,a_1,...,a_t)^T=(\mathbf{A}(\alpha_0),\mathbf{A}(\alpha_1),...,\mathbf{A}(\alpha_n))^T\]
+  The matrix shown above is called a Vandermonde matrix and will be called $V_\alpha$. This Matrix is invertible, so we can build $V^{-1}$ so that for $n=t+1$ the following calculation holds: 
+\[ V^{-1}(\mathbf{A}(\alpha_0),\mathbf{A}(\alpha_1),...,\mathbf{A}(\alpha_{t+1}))=(a_0,...,a_t)^T  \]
+  Note that we can use any of the support points here, as long as we use enough of them. The calculation shown above shows us, that we can reconstruct the polynomial if we only know enough support points to construct $V^{-1}$. If we assume our secret to be stored in $a_0$ and if we write $(\lambda_{1,i-1},...\lambda_{n,i-1})$ to denote the $i$-th row of $V^{-1}$, we can show that $a_0=\sum_{i=1}^{n}\lambda_{\alpha,i} \mathbf{A}(\alpha_i)$. So for our calculations, we can reconstruct the secret entirely based on the points and no not necessarily need the polynomial itself. 
+  
+  A different view to access the secret is via the Lagrange polynomial.
+  \begin{definition}[Lagrange Polynomial]
+    A Lagrange polynomial is defined as \[ L_{\alpha}^{(i)}(x)=\frac{\prod_{j \neq i}(x-\alpha_j)}{\prod_{j \neq i}(\alpha_i-\alpha_j)}\]
+  where $\alpha_i$ denotes the $i$-th support point. 
+  \end{definition}
+  We can now build our polynomial \textbf{A} by building the Lagrange Polynomial for every support point and multiplying it with the corresponding value of \textbf{A} at the current support point:
+  \[ \textbf{B}(x)=\sum_{i=1}^{n}L_{\alpha}^{(i)}(x)\textbf{A}(\alpha_i)=\textbf{A}(x)\]
+  The equality between \textbf{B} and \textbf{A} gets clear once we realize that both polynomials share $t$ value-pairs. As soon as our degree is smaller than $t$, they have to be identical. This way of viewing the polynomial can be quite helpful, since it allows us to reconstruct the original polynomial once we know enough support points.
+  This representation gives us the polynomial only using the support points themselves. We can now write $\lambda_{\alpha,i}= L_{\alpha}^{(i)}(0)$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%   LAOLA
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     \section{The LaOla Gadget}
+    One problem we encounter when masking secrets via polynomials arises once we want to multiply two masked secrets. When simply adding to values, we can just add points on top of each other by adding the value of the functions at the support points. However, when dealing with multiplication, we suddenly have to take a degree expansion into account. The number of support points we needed beforehand is now no longer enough to decode the secret. At the same time, if the multiplied new value is deemed $x$-SNI, we can no longer assure the same for the two polynomials we originally factorized.
 
-    A gadget built by Berndt et al, takes two polymaskings $\mathbf{F}$ and $\mathbf{G}$ as input and outputs $\mathbf{F}\cdot \mathbf{G}$. Is SNI-Secure. The core concept revolves
-    around splitting the Polynomials to mask potential secrets:
+    Over the years, different versions to deal with this problem have been tested. In this thesis, i will focus on one of them in particular: \textbf{LaOla}.
+    LaOla is a gadget built by Berndt et al, it takes two polymaskings $\mathbf{F}$ and $\mathbf{G}$ as input and outputs $\mathbf{F}\cdot \mathbf{G}$. It was first introduced in TODO. The core concept revolves around splitting the polynomials into two parts before multiplying them together to mask the secrets:
     \[ \mathbf{F}\cdot \mathbf{G}=(\mathbf{F}'+\mathbf{F}'')\cdot(\mathbf{G}'+\mathbf{G}'')= \mathbf{F}'\mathbf{G}'+\mathbf{F}'\mathbf{G}''+\mathbf{F}''\mathbf{G}'+\mathbf{F}''\mathbf{G}''\] 
-    To split the encodings, the SplitRed algorithm is used. After both maskings are split, the four different parts get calculated and then added together. 
+    To split the encodings, the SplitRed algorithm is used.This algorithm will be explained in section \ref{sec:splitred} and uses a neat little trick: the two hallves of the split polynomial both individually have grade $d$, but parts of the arguments get chosen inverse to each other, so that once they are added together, the resulting polynomial has degree $d/2$. This way, the increase in degree gets subverted, so that in the end we have a polynomial $\mathbf{H}=\mathbf{F}\cdot \mathbf{G}$ with \textit{deg}(\textbf{H})=$d$. 
 
-    The full pseudocode looks like this:
+    Once the polynomials have been split, the smaller parts get calculated before adding them all together. The full pseudocode for LaOla looks like this:
     \begin{Pseudocode}
   $\text{\textbf{LaOlaMult} as shown in \cite{eVer2026}}$
 ====
@@ -114,20 +139,24 @@ TODO EXPLAIN RESULTS
     \end{Pseudocode}
 
     Since the secrets from \textbf{F} and \textbf{G} are each split across two parts which never get calculated together openly, there is no calculation in which a whole secret is leaked.
-    The attacker would have to listen to at least two of the multiplications to learn anything about the whole secret, and since both parts resulting from th SplitRed-call also 
+    The attacker would have to listen to at least two of the multiplications to learn anything about the whole secret, and since both parts resulting from the SplitRed-call also 
     have a degree of $d$, we achieve $d-1$-SNI.
 
-    \subsection{The Splitred-Algorithm}
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %   SPLITRED
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    \section{The Splitred-Algorithm}
+    \label{sec:splitred}
     The SplitRed-Algorithm is the core algortihm I tackled in this thesis, so I will make some room here to explain it properly. Originally it was used in the LaOla Multiplication 
     gadget.
-    As I am working in the eVer framework a lot, I will use the version of the alorithm provieded by Gourjon, Orls, Pauls and Treff in their paper on the framework \cite{eVer2026}
-    The general idea of the algorithm is to take one polynomial Encoding $\mathbf{F}$ of degree $d$ and split it into two polynomial Encodings of degree $d$. The two resulting 
-    polynomials can be added together to retrieve the original secret encoded by $\mathbf{F}$, but if added together, 
-    the degree of the resulting polynomial halves. This is neat, because if we multiply two polynomials of degree $d/2$, the resulting polynomialwill once again have a degree of $d$. 
-    We can therefore write $\mathbf{F}$ as $\mathbf{F}'+\mathbf{F}''$.
+    Although originally introduced in TODO, since I am working in the eVer framework a lot, I will use the version of the algorithm provided by Gourjon, Orls, Pauls and Treff in their paper on the framework \cite{eVer2026}
+    The general idea of the algorithm is to take one polynomial Encoding $\mathbf{F}$ of degree $d$ and split it into two polynomial Encodings of degree $d$. The two resulting polynomials, if added together, mask the same secret as $\mathbf{F}$, but this addition leads to a degree decrease, 
+    the degree of the resulting polynomial halves. The degree reduction is achieved by designing the two split polynomials in such a way that the last $d/2$ coefficients inverse to each other so that they cancel out when added together. This is neat, because if we multiply two polynomials of degree $d/2$, the resulting polynomial will once again have a degree of $d$. 
+    We can write $\mathbf{F}$ as $\mathbf{F}'+\mathbf{F}''$, since both sides of the equation mask the same secret.
 
-    To achieve the degree-reduction that happens when adding $\mathbf{F}'$ to $\mathbf{F}''$, we construct them the following way: 
-    To construct $\mathbf{F}'$, the first half of the shares of $\mathbf{F}$ gets rescaled to 
+    Let's take a look at how the algorithm achieves the desired properties (masking the same secret ad \textbf{F} while halving the degree when \textbf{F}' and \textbf{F}'' are added together) in more detail:
+   
 
     
     \begin{Pseudocode}
@@ -162,12 +191,9 @@ TODO EXPLAIN RESULTS
     return $\mathbf{F}$', $\mathbf{F}''$
 
     \end{Pseudocode} 
-    Let's take a closer look at what happens here: The algorithm takes a polynomial encoding $\mathbf{F}$ of grade $d$. \textbf{F} will encode $e$ secrets and consist of $n=d+e+1$
-    shares. 
-    It then splits it into two other encodings $\mathbf{F}'$ and $\mathbf{F}''$. Those two output polynomials have a degree of $d$ as well, but when added together, the degree 
-    reduces to d'. 
-    We first draw $\lceil\frac{n}{2}\rceil$ Zero-Encodings which we then sum up. Each Zero-Encoding has a degree of $d-j$ if $j<d+1-k$. This leads us to a triangular shape. The 
-    case distinction assures us that the degree won't be negative.
+    The algorithm takes a polynomial encoding $\mathbf{F}$ of grade $d$. \textbf{F} will encode $e$ secrets and consist of $n=d+e+1$ shares.  For our purposes, most of the time $e==1$.
+     
+    We first draw $\lceil\frac{n}{2}\rceil$ Zero-Encodings which we then sum up. Each Zero-Encoding has a degree of $d-j$ if $j<d+1-k$ or the full degree of $d$ else. This leads us to a triangular shape as seen in \ref{fig:G_hat}. The  case distinction assures us that the degree won't be negative.
     If n is uneven, we need a special case for adding two Zero-Encodings onto one value. 
 
 
@@ -191,7 +217,7 @@ TODO EXPLAIN RESULTS
 \end{figure}
     
 
-
+    We want to split the secret between the two split polynomials. To do this, we take the first $\lfloor n/2 \rfloor$ shares and build ourselves a 
 
     
     Then some magic happens where we norm the secrets with a $\lambda$-Value, add them onto the Zero-Encodings and then build it all together to recieve \textbf{F}'.
@@ -203,16 +229,153 @@ TODO EXPLAIN RESULTS
     \section{eVer}
     The main framework I worked with for this thesis. Its a python tool developed by Gourjon, Orldt and Pauls and used to verify security of gadgets.
     It is not easy to prove a gadget as secure, with the best solution often being a brute-force approach where all possible combinations of leakage get tested.
-    This tool implements exactly that, it is a way to prove SNI by trying out lal possible tuples of leakages. Those tuples can also be used as a first estimate for the complexity 
+    This tool implements exactly that, it is a way to prove SNI by trying out all possible tuples of leakages. Those tuples can also be used as a first estimate for the complexity 
     of the gadget, since more tuples needing to be tested arise for more complex gadgets. The aim for this thesis was therefore to implement new gatgets that can be verified by 
     eVer while reducing the number of tuples needig to be checked.
     Since eVer checks every tuple fully autoatically, it is especially useful when wanting to test if small changes made to an existing gadget still hold security.
 
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% ADDITIVE SHARING                                                                                                                                                                               %
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   \chapter{Implementing a New Gadget for Additive Sharing}
+  \label{ch:additive}
+
+  To get more familiar with eVer as well as gadget-sharing in general, I implemented an additive sharing gadget. Specifically, I implemented the following gadget introduced in \cite{Coron2015}:
+  \begin{Pseudocode}
+  $\text{\textbf{Secure Evaluation of }}h:x \odot g(x) \text{\textbf{for additive Sharing}}$
+====
+$\mathbf{Input:}$ shares $(a_i)_i$ such that $\oplus _i a_i =a$
+$\mathbf{Output:}$ shares $c_i$ satisfying $\oplus_i c_i = a \odot g(a)$ $\text{\textit{for}}$ some $\mathbb{F}_2$-linear $\text{\textit{function}}$ $g$
+
+for i=0 to d do 
+  for j=i+1 to d do
+    $r_{i,j} \rightarrow ^{\$} \mathbb{F}_{2^n}$
+    $r'_{i,j} \rightarrow ^{\$} \mathbb{F}_{2^n}$
+    t<-$r_{i,j} \oplus a_i \odot g(r'_{i,j})$
+    t<-t $\oplus (r'_{i,j}\odot g(a_i))$
+    t<-t $\oplus (a_i \odot g(a_j\oplus r'_{i,j}))$
+    t<-t $\oplus ((a_j \oplus r'_{i,j})\odot g(a_i))$
+    $r_{i,j}$<-t
+  end for
+end for
+for i=0 to d do
+    $c_i$ <- $a_i \odot g(a_i)$
+    for j=0 to d, $j\neq i$ do $c_i$ <- $c_i \oplus r_{i,j}$
+end for
+      
+ 
+  \end{Pseudocode}
+
+  This code calculates $a \cdot g(a)$, where $a$ denotes an additively masked secret. When multiplying two masked secrets, we have to mutliply each share with each share. We are able to multiply a sharing with itself without ab problem, but once we start mutliplying different shares to the same secret, we reveal too much information and break SNI. For this reason, we throw randomness onto the crossterms in such a way that we can safely multiply them together. 
+
+  \begin{figure}[htbp]
+    \begin{tikzpicture}[
+    cell/.style={draw, rounded corners=4pt, minimum width=2.2cm, minimum height=1.6cm, align=center, font=\small},
+    diag/.style={cell, fill=emph!25, draw=emph!70!black},
+    cross/.style={cell, fill=Ozeangruen!20, draw=Ozeangruen!70!black},
+    outbox/.style={draw, rounded corners=4pt, fill=emph green!15, draw=emph green!70!black, minimum width=3cm, minimum height=1.4cm, align=center, font=\small},
+    arr/.style={-{Stealth[length=2.5mm]}, thick, gray!70}
+]
+
+% Column headers
+\node[font=\small\itshape] at (2.5, 5.0) {$j=0$};
+\node[font=\small\itshape] at (5.0, 5.0) {$j=1$};
+\node[font=\small\itshape] at (7.5, 5.0) {$j=2$};
+\node[font=\small\itshape] at (9.5, 5.0) {...};
+
+
+% Row headers
+\node[font=\small\itshape] at (0.7, 3.8) {$i=0$};
+\node[font=\small\itshape] at (0.7, 2.2) {$i=1$};
+\node[font=\small\itshape] at (0.7, 0.6) {$i=2$};
+\node[font=\small\itshape] at (0.7, -1.0) {...};
+
+
+% Row i = 0
+\node[diag]  (c00) at (2.5, 3.8) {$a_0 \cdot g(a_0)$\\[2pt]\footnotesize self term};
+\node[cross] (c01) at (5.0, 3.8) {$r_{0,1}$\\[2pt]\footnotesize cross term};
+\node[cross] (c02) at (7.5, 3.8) {$r_{0,2}$\\[2pt]\footnotesize cross term};
+\node[font=\small\itshape] (c03) at (9.5, 3.8) {...};
+
+
+% Row i = 1
+\node[cross] (c10) at (2.5, 2.2) {$r_{1,0}$\\[2pt]\footnotesize cross term};
+\node[diag]  (c11) at (5.0, 2.2) {$a_1 \cdot g(a_1)$\\[2pt]\footnotesize self term};
+\node[cross] (c12) at (7.5, 2.2) {$r_{1,2}$\\[2pt]\footnotesize cross term};
+\node[font=\small\itshape] (c13) at (9.5, 2.2) {...  };
+
+
+% Row i = 2
+\node[cross] (c20) at (2.5, 0.6) {$r_{2,0}$\\[2pt]\footnotesize cross term};
+\node[cross] (c21) at (5.0, 0.6) {$r_{2,1}$\\[2pt]\footnotesize cross term};
+\node[diag]  (c22) at (7.5, 0.6) {$a_2 \cdot g(a_2)$\\[2pt]\footnotesize self term};
+\node[font=\small\itshape] (c23) at (9.5, 0.6) {...    };
+
+
+% Output boxes
+\node[outbox] (out0) at (13.0, 3.8) {$c_0$\\[2pt]\footnotesize sum of row $i=0$};
+\node[outbox] (out1) at (13.0, 2.2) {$c_1$\\[2pt]\footnotesize sum of row $i=1$};
+\node[outbox] (out2) at (13.0, 0.6) {$c_2$\\[2pt]\footnotesize sum of row $i=2$};
+\node[font=\small\itshape] at (13.0, -1.0) {...};
+
+\node[font=\small\itshape] at (2.5, -1.0) {...};
+\node[font=\small\itshape] at (5.0, -1.0) {...};
+\node[font=\small\itshape] at (7.5, -1.0) {...};
+
+
+
+
+% Arrows from each row into its output share
+\draw[arr] (c03.east) -- ++(0.5,0) |- (out0.west);
+\draw[arr] (c13.east) -- ++(0.5,0) |- (out1.west);
+\draw[arr] (c23.east) -- ++(0.5,0) |- (out2.west);
+
+\end{tikzpicture}
+\caption{The mutliplication-algorithm calculates cross-terms and diagonal terms differently so it doesn't reveal anything about the secret by leaking two different shares}
+  \label{fig:AdditiveMasking}
+  \end{figure}
+
+  Let's take a closer look at the cross terms. TODO
+
+  I implemented the algorithm in eVer. The whole algorithm can be found there, but as an example, here is some of the code that should give a good feeling for eVer as a tool. This code calculates line 5 of the algorithm, so  $t\leftarrow r_{i,j} \oplus a_i \odot g(r'_{i,j})$: 
+  \begin{Python}
+  # 5. t <- ri,j
+                
+    t = R_obs
+  # 5a. t <- t + h(ai + r'i,j)
+
+    hxi_r1ij= h(x.sharing[i].__add__(
+      R1_obs,
+      loc=Location(
+        "ISWSecMultLookup",
+        1,
+        description=f"Calculate g(x[{i}]+r'[{i}][{j}])",
+        caller=callloc,
+      ) 
+    ))
+            
+    t= t.__add__(
+      hxi_r1ij,
+      loc=Location(
+        "ISWSecMultLookup",
+        1,
+        description=f"t=t+g(x[{i}]+r'[{i}][{j}])",
+        caller=callloc,
+      ) 
+    )
+  \end{Python}
+
+  With every step of the calculation, we track the location of it so that debugging gets a bit easier. The program then tests verifies SNI by trying out every tuple of possible leakages and checks if it gives away anything of the secret.
+
 
   \chapter{Extending LaOla by designing LaOla-Variants}
+  \label{ch:variants}
+
+  The main part of this thesis consists of my efforts to improve LaOla and to build variants of it that allow us to multiply more efficiently as soon as some conditions apply. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -221,16 +384,16 @@ TODO EXPLAIN RESULTS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     \section{A Squaring-Gadget}
 
-    The most expensive part about LaOla is the Splitred-call. When a secret is squared, e.g. $\mathbf{G}=\mathbf{F}$, Splitred is called twice with the same input.
-    Taking a look at at the calculations themselves, here is what happens:
+    The most expensive part about LaOla is the Splitred-call. When a masked value is squared, e.g. $\mathbf{G}=\mathbf{F}$, Splitred is called twice with the same input.
+    Taking a look at the calculations themselves, here is what happens:
     \[\mathbf{F}² = \mathbf{F} \times \mathbf{F} = (\mathbf{F'} +\mathbf{F''})(\mathbf{F'''}+\mathbf{F}^{IV}) = \mathbf{F'F'''} +\mathbf{F'F}^{IV} + \mathbf{F''F'''} + \mathbf{F''F}^{IV}\]
     It is important that $\mathbf{F'} +\mathbf{F''}$ and $\mathbf{F'''}+\mathbf{F}^{IV}$ encode the same secret. The idea of this LaOla-Variant rests on this fact, as I was trying 
     to remove one of the two splitred-calls.
     If we take this approach at its most basic, we get \[\mathbf{F}²=(\mathbf{F'}+\mathbf{F''})²= \mathbf{F'}² +2*\mathbf{F'}\mathbf{F''} + \mathbf{F''}²\]. 
-    Looking at the Fact that we work in \textbf{GF28}, the middle term cancels out. leaving us with $\mathbf{F'}² + \mathbf{F''}²$. We can calculate this securely, because none of 
-    the Terms hides the full secret.
+    Looking at the Fact that we work in \textbf{GF28}, the middle term cancels out, leaving us with $\mathbf{F'}² + \mathbf{F''}²$. We can calculate this securely, because none of 
+    the Terms hides the full secret. In this case, we only need to call SplitRed once. 
 
-    However, once a calculation is made on a different field, this no longher holds, and simply calculating $\mathbf{F'}\mathbf{F''}$ will break SNI, because they are linearly 
+    However, once a calculation is made on a different field, this no longer holds, and simply calculating $\mathbf{F'}\mathbf{F''}$ will break SNI, because they are linearly 
     dependent. 
     
 
@@ -239,12 +402,12 @@ TODO EXPLAIN RESULTS
 % CONQUERING LINEAR DEPENDENCY                                                                                                                                                                           %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     \subsection{Conquering linear dependency}
-    The most brute-fore approach is to call a new standard LaOla-Gadget on the two missing parts. However, at almost 3 times the original cost, this is horrendoulsy expensive. 
+    The most brute-fore approach is to call a new standard LaOla-Gadget on the two missing parts. However, at almost 3 times the original cost, this is horrendoulsy expensive.
     I then tried to create a second variant of $\mathbf{F'}$ and $\mathbf{F''}$ by adding more randomness to them, hoping that this might be enough. For this, I tried multiple things:
-    First, i tried simply refreshing $\mathbf{F'}$ and $\mathbf{F''}$ by using the OptRefresh-Gadget that is already implemented in eVer. This however was not enough to reach SNI, 
+    First, I tried simply refreshing $\mathbf{F'}$ and $\mathbf{F''}$ by using the OptRefresh-Gadget that is already implemented in eVer. This however was not enough to reach SNI, 
     so I hasd to look at different approaches.
     \\
-    If we split a zero-encoding which is then added onto the second part of the splitted polynomial, thsi should add enough randomness to guarantee Security. 
+    If we split a zero-encoding which is then added onto the second part of the splitRed polynomial, thsi should add enough randomness to guarantee Security. 
     In the worst case szenario we would have the same costs as the original LaOla, but there seemed to be opportunities to simplify splitred for the zero-encoding. The calculation 
     we want to make looks like this (where $\mathbf{Z}'$ and $\mathbf{Z''}$ symbolize a split polynomial that encodes a zero):
     \[\mathbf{F}²=(\mathbf{F'}+\mathbf{F''})(\mathbf{F'}+\mathbf{F''}+\mathbf{Z'}+\mathbf{Z''})= (\mathbf{F'}+\mathbf{F''})((\mathbf{F'}+\mathbf{Z'})+(\mathbf{F''}+\mathbf{Z''}))\] 
@@ -279,7 +442,7 @@ TODO EXPLAIN RESULTS
       Since this version is only applied onto a Zero-Encoding, The "secret" is 0. Because of this, we don't need to encode any "real" secret values and can instead ommit $\lambda$ 
       completely.
       This bought the tuples eVer needs to verify down by about 20\%.
-      After a bit of trial and error, it turned out that all of the loops only need to go to $\lfloor n/2 \rfloor$ to reach SNI. 
+      After a bit of trial and error, it turned out that all the loops only need to go to $\lfloor n/2 \rfloor$ to reach SNI. 
       This all culminates in a decent performance-boost, since we get rid of a lot of expensive randomness. With this change, eVer needs to evaluate less than half the amount of 
       tuples necessary the original LaOla. I also decided to exchange the extra Zero-Encoding into a much sinpler version.
 
@@ -415,7 +578,7 @@ $\text{\textbf{Exponentation to the 254} as shown in Algorithm 4 in \cite{SBoxes
 
   \chapter{Conclusion and Outlook}
 
-  I have found quite a few improvements to LaOla. It would be nice to find a way where, if given $x^n$, it is inexpensive to calculate $x^{n+1}$. Since this is a linear Operatin in GF($2^8$), it is quite possible that such improvements exist. If found, AES-SBoxes could be calculated securely with a very low cost.
+  I have found quite a few improvements to LaOla. It would be nice to find a way where, if given $x^n$, it is inexpensive to calculate $x^{n+1}$. Since this is a linear Operatin in GF($2^8$), it is reasonable to assume that such an improvement might exist. If found, AES-SBoxes could be calculated securely with a very low cost.
 
   \begin{bibtex-entries}
     @TechReport{Kernighan1974,
@@ -470,6 +633,11 @@ $\text{\textbf{Exponentation to the 254} as shown in Algorithm 4 in \cite{SBoxes
       pages = {612–613},
       numpages = {2},
     }
+    @misc{SkriptBerndt,
+      author = {Sebastian Berndt and Maciej Liśkiewicz},
+      title = {Advanced Cryptology, Skript},
+      year = {2026},
+    }   
     
 
   \end{bibtex-entries}
