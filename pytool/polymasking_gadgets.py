@@ -2773,6 +2773,7 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             zeros,
             d,
             0,
+     #       lambda_hat,
             A_tilde,
             rc,
             callloc=Location("LaolaLinearMult", lineno=2, caller=callloc),
@@ -2788,44 +2789,58 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             f_pp, z_pp, callloc=Location("LaolaLinearMult", lineno=4, caller=callloc)
         ).output()
 
-        g_f_p = fz_p.copy(
-            sharing=[
-                mk_obsval(
-                    fz_p.obsgraph,
-                    s.ps_obs.value ** a,
-                    s.ni_obs.value ** a,
-                )
-                for s in fz_p.sharing
-            ],
-            secrets=[s ** a for s in fz_p.secrets],
-        )
-
-        # Apply g to second part (excludes b to prevent cancellation)
-        g_f_pp = fz_pp.copy(
-            sharing=[
-                mk_obsval(
-                    fz_pp.obsgraph, s.ps_obs.value ** a, 
-                    s.ni_obs.value ** a
-                )
-                for s in fz_pp.sharing
-            ],
-            secrets=[s ** a for s in fz_pp.secrets],
-        )
+    
 
         H0 = SWPolyMulGadget(
-            f_p, g_f_p, callloc=Location("LaolaLinearMult", lineno=5, caller=callloc)
+            f_p, fz_p, callloc=Location("LaolaLinearMult", lineno=5, caller=callloc)
         ).output()
         H1 = SWPolyMulGadget(
-            f_p, g_f_pp, callloc=Location("LaolaLinearMult", lineno=6, caller=callloc)
+            f_p, fz_pp, callloc=Location("LaolaLinearMult", lineno=6, caller=callloc)
         ).output()
 
         H2 = SWPolyMulGadget(
-            f_pp, g_f_p, callloc=Location("LaolaLinearMult", lineno=7, caller=callloc)
+            f_pp, fz_p, callloc=Location("LaolaLinearMult", lineno=7, caller=callloc)
         ).output()
         H3 = SWPolyMulGadget(
-            f_pp,
-            g_f_pp,
-            callloc=Location("LaolaLinearMult", lineno=8, caller=callloc),
+            f_pp, fz_pp, callloc=Location("LaolaLinearMult", lineno=8, caller=callloc),
+        ).output()
+
+        y = SWComp(
+            H0,
+            H1,
+            H2,
+            H3,
+            d,
+            A_tilde,
+            rc,
+            callloc=Location("LaolaLinearMult", lineno=9, caller=callloc),
+        ).output()
+
+        fy_p, fy_pp, rands_y = self._split_red(
+            y,
+            d,
+            (d + 1) // 2,
+            lambda_hat,
+            A_tilde,
+            rc,
+            callloc=Location("LaolaLinearMult", lineno=1, caller=callloc),
+        )
+        self.randoms.update(rands_y)
+
+
+        self.randoms.update(rands_y)
+        H0 = SWPolyMulGadget(
+            fy_p, fz_p, callloc=Location("LaolaLinearMult", lineno=5, caller=callloc)
+        ).output()
+        H1 = SWPolyMulGadget(
+            fy_p, fz_pp, callloc=Location("LaolaLinearMult", lineno=6, caller=callloc)
+        ).output()
+    
+        H2 = SWPolyMulGadget(
+            fy_pp, fz_p, callloc=Location("LaolaLinearMult", lineno=7, caller=callloc)
+        ).output()
+        H3 = SWPolyMulGadget(
+            fy_pp, fz_pp, callloc=Location("LaolaLinearMult", lineno=8, caller=callloc),
         ).output()
         res = SWComp(
             H0,
@@ -2837,6 +2852,9 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             rc,
             callloc=Location("LaolaLinearMult", lineno=9, caller=callloc),
         )
+
+
+        self.randoms.update(rands_f)
         self.randoms.update(res.randoms)
         res_enc = res.output()
 
@@ -3259,7 +3277,380 @@ class LaolaQuadGadget(Gadget[PolyEnc]):
             secrets=dummy_secrets,
         )
         return Fp_enc, Fpp_enc, randoms
+#
 
+class OriginalLaolaMultGadget(Gadget[PolyEnc]):
+    def __init__(
+        self,
+        f: PolyEnc,
+        g: PolyEnc,
+        d: int,
+        rc: count,
+        callloc: Optional[Location],
+    ):
+        if not isinstance(f, PolyEnc) or not isinstance(g, PolyEnc):
+            raise TypeError("LaolaMultGadget requires two PolyEnc inputs.")
+        if f.field != g.field:
+            raise ValueError("Fields differ between the two encodings.")
+        if f.k != g.k:
+            raise ValueError(
+                f"Number of encoded secrets mismatch k: {f.k} != {g.k}"
+            )
+        if f.e != g.e:
+            raise ValueError(f"Redundancy mismatch e: = {f.e} != {g.e}")
+        if f.support_points != g.support_points:
+            raise ValueError("Support-points do not match.")
+        # if f.k > 1 and f.k > d // 2:
+        #     raise ValueError(f"Degree {d} is too low for k={f.k}.")
+        super().__init__([f, g], callloc)
+
+        n = f.n
+        self.k = k = f.k
+        self.randoms = set()
+
+        if k == 1:
+            lambda_hat = generate_lambda_hat_non_packed(
+                f.base_ring, list(f.support_points), d
+            )
+            A_tilde = gen_A_tilde_3D(
+                f.base_ring,
+                n,
+                d,
+                k,
+                [f.base_ring.zero()],
+                list(f.support_points),
+            )
+        else:
+            lambda_hat = generate_lambda_hat_packed(
+                f.base_ring,
+                list(f.secret_support_points),
+                list(f.support_points),
+                d,
+                (d // 2),
+            )
+            A_tilde = gen_A_tilde_3D(
+                f.base_ring,
+                n,
+                d,
+                k,
+                list(f.secret_support_points),
+                list(f.support_points),
+            )
+
+        f_p, f_pp, rands_f = self._split_red(
+            f,
+            d,
+            (d + 1) // 2,
+            lambda_hat,
+            A_tilde,
+            rc,
+            callloc=Location("LaOlaMult", lineno=1, caller=callloc),
+        )
+        g_p, g_pp, rands_g = self._split_red(
+            g,
+            d,
+            d // 2,
+            lambda_hat,
+            A_tilde,
+            rc,
+            callloc=Location("LaOlaMult", lineno=2, caller=callloc),
+        )
+        self.randoms.update(rands_f)
+        self.randoms.update(rands_g)
+        H0 = SWPolyMulGadget(
+            f_p, g_p, callloc=Location("LaOlaMult", lineno=3, caller=callloc)
+        ).output()
+        H1 = SWPolyMulGadget(
+            f_p, g_pp, callloc=Location("LaOlaMult", lineno=4, caller=callloc)
+        ).output()
+        H2 = SWPolyMulGadget(
+            f_pp, g_p, callloc=Location("LaOlaMult", lineno=5, caller=callloc)
+        ).output()
+        H3 = SWPolyMulGadget(
+            f_pp, g_pp, callloc=Location("LaOlaMult", lineno=6, caller=callloc)
+        ).output()
+        res = SWComp(
+            H0,
+            H1,
+            H2,
+            H3,
+            d,
+            A_tilde,
+            rc,
+            callloc=Location("LaOlaMult", lineno=7, caller=callloc),
+        )
+        self.randoms.update(res.randoms)
+        res_enc = res.output()
+
+        self.output_enc = f.copy(
+            sharing=res_enc.sharing,
+            secrets=[f_i * g_i for f_i, g_i in zip(f.secrets, g.secrets)],
+        )
+
+    @classmethod
+    def with_defaults(cls: Type[Self], d: int, k: int, e: int, F) -> Self:
+        # assert k == 1 or k > d // 2, (
+        #     f"Skipped LaolaMultGadget for k={k} and d={d} (k must be <= d//2)"
+        # )
+
+        n = d + e + 1
+
+        F_enc, G_enc, rc = make_f_g_encodings(d, e, n, k, F)
+        instance = cls(F_enc, G_enc, d, rc, callloc=None)
+
+        return instance
+
+    def output(self) -> PolyEnc:
+        return self.output_enc
+
+    def random_vars(self) -> Set[MPolynomial]:
+        return self.randoms
+
+    def _split_red(
+        self,
+        f: PolyEnc,
+        global_d: int,
+        d_prime: int,
+        lambda_hat: list[list[MPolynomial]],
+        A_tilde: list[list[list[MPolynomial]]],
+        rc: count,
+        callloc: Optional[Location],
+    ) -> tuple[PolyEnc, PolyEnc, set[MPolynomial]]:
+        """
+        SplitRed is a function that splits a polynomial encoding F into two parts F' and F'' such that deg(F) = deg(F') = deg(F''), F = F' + F'' and deg(F' + F'') = deg(F)/2.
+        The function is used in the LAOLA multiplication algorithm.
+        """
+        n = f.n
+        ceil_n = (n + 1) // 2
+        floor_n = n // 2
+        randoms = set()
+        R_zero = f.variable_ring.zero()
+
+        if d_prime == global_d:
+            zero_sharing = f.copy(
+                sharing=[
+                    mk_obsval(
+                        f.obsgraph,
+                        f.variable_ring.zero(),
+                        f.variable_ring.zero(),
+                    )
+                    for _ in range(n)
+                ],
+                secrets=[f.variable_ring.zero() for _ in range(f.k)],
+            )
+            return f, zero_sharing, randoms
+        # initialize dummy encodings
+        g_hat: list[PolyEnc] = [
+            f.copy(
+                sharing=[
+                    mk_obsval(
+                        f.obsgraph,
+                        R_zero,
+                        R_zero,
+                        location=Location(
+                            "SplitRed",
+                            description=f"init g-hat[{i}]",
+                            caller=callloc,
+                        ),
+                    )
+                    for i in range(n)
+                ],
+                secrets=[R_zero for _ in range(f.k)],
+            )
+            for _ in range(n)
+        ]  # FIXME: adjust range to avoid double assignment
+        g: list[PolyEnc] = [
+            f.copy(
+                sharing=[
+                    mk_obsval(
+                        f.obsgraph,
+                        R_zero,
+                        R_zero,
+                        location=Location(
+                            "SplitRed",
+                            description=f"init g[{i}]",
+                            caller=callloc,
+                        ),
+                    )
+                    for i in range(n)
+                ],
+                secrets=[R_zero for _ in range(f.k)],
+            )
+            for _ in range(n)
+        ]
+        # dummy_zero_enc = PolyEnc(shares=[SR(0) for _ in range(n)], secrets=[SR(0) for _ in range(f.k)])
+
+        # 1) build full degree zero encodings
+        for j in range(ceil_n):
+            degree = (
+                (global_d - j) if (j < (global_d + 1 - self.k)) else global_d
+            )
+            lineno = 4 if (j < (global_d + 1 - self.k)) else 6
+            zenc = OptZenc(
+                f,
+                degree,
+                0,
+                A_tilde,
+                rc,
+                callloc=Location(
+                    "SplitRed",
+                    lineno=lineno,
+                    description=f"g-hat[{j}] <- optZenc",
+                    caller=callloc,
+                ),
+            )
+            randoms.update(zenc.randoms)
+            g_hat[j] = zenc.output()
+
+        # this is the assumed unnecessary ZENC that is still in the algorithm
+        for j in range(floor_n):
+            g[j] = g_hat[j]
+
+        # 3) if n is odd, do the extra add-back at j=half-1
+        if n % 2 == 1:
+            # TODO: description
+            g[floor_n - 1] = SWPolyAddGadget(
+                g[floor_n - 1],
+                g_hat[ceil_n - 1],
+                callloc=Location("SplitRed", lineno=14, caller=callloc),
+            ).output()
+
+        # 4) first-half contributions to Fp
+        # TODO: Location
+        Fp_cal: list[list[ObservableValue]] = [
+            [mk_obsval(f.obsgraph, R_zero, R_zero) for _ in range(n)]
+            for _ in range(n)
+        ]
+        F_cal: list[list[ObservableValue]] = [
+            [mk_obsval(f.obsgraph, R_zero, R_zero) for _ in range(n)]
+            for _ in range(n)
+        ]
+        Fp: list[ObservableValue] = [
+            mk_obsval(f.obsgraph, R_zero, R_zero) for _ in range(n)
+        ]
+
+        for j in range(floor_n):
+            for i in range(n):
+                val = f.variable_ring(lambda_hat[i][j])
+                # TODO: Location
+                Fp_cal[j][i] = mk_obsval(f.obsgraph, val, val) * f.sharing[j]
+
+                # TODO: description
+                F_cal[j][i] = (
+                    g[j]
+                    .sharing[i]
+                    .__add__(
+                        Fp_cal[j][i],
+                        loc=Location("SplitRed", lineno=19, caller=callloc),
+                    )
+                )
+                # TODO: description
+                Fp[i].__iadd__(
+                    F_cal[j][i],
+                    loc=Location("SplitRed", lineno=21, caller=callloc),
+                )
+
+        dummy_secrets = [
+            R_zero for _ in range(f.k)
+        ]  # These are dummy secrets since this is a 1 input to  2 output gadget and both outputs contain specific parts of the secrets
+
+        Fp_enc = f.copy(
+            sharing=Fp,
+            secrets=dummy_secrets,
+        )
+
+        # 5) build G[j][i] for the second half
+
+        for j in range(ceil_n):
+            idx = j + floor_n
+            if d_prime == 0:
+                zeros = f.copy(
+                    sharing=[
+                        mk_obsval(
+                            f.obsgraph,
+                            f.variable_ring.zero(),
+                            f.variable_ring.zero(),
+                        )
+                        for _ in range(n)
+                    ],
+                    secrets=[f.variable_ring.zero() for _ in range(f.k)],
+                )
+                g[idx] = SWPolySubGadget(
+                    zeros,
+                    g_hat[j],
+                    callloc=Location("SplitRed", lineno=27, caller=callloc),
+                ).output()
+            else:
+                degree = (
+                    (d_prime - j) if (j < (d_prime - self.k + 1)) else (d_prime)
+                )
+                lineno = 24 if (j < (d_prime - self.k + 1)) else 26
+                if degree > 0:
+                    # TODO: description
+                    zenc = OptZenc(
+                        f,
+                        degree,
+                        0,
+                        A_tilde,
+                        rc,
+                        callloc=Location(
+                            "SplitRed", lineno=lineno, caller=callloc
+                        ),
+                    )
+                    randoms.update(zenc.randoms)
+                    g[idx] = SWPolySubGadget(
+                        zenc.output_enc,
+                        g_hat[j],
+                        callloc=Location("SplitRed", lineno=27, caller=callloc),
+                    ).output()
+                else:
+                    zeros = f.copy(
+                        sharing=[
+                            mk_obsval(
+                                f.obsgraph,
+                                f.variable_ring.zero(),
+                                f.variable_ring.zero(),
+                            )
+                            for _ in range(n)
+                        ],
+                        secrets=[f.variable_ring.zero() for _ in range(f.k)],
+                    )
+                    g[idx] = SWPolySubGadget(
+                        zeros,
+                        g_hat[j],
+                        callloc=Location("SplitRed", lineno=27, caller=callloc),
+                    ).output()
+
+        # 6) accumulate into outputs Fp and Fpp
+        Fpp: list[ObservableValue] = [
+            mk_obsval(f.obsgraph, R_zero, R_zero) for _ in range(n)
+        ]
+
+        for j in range(floor_n, n):
+            for i in range(n):
+                val = f.variable_ring(lambda_hat[i][j])
+                # TODO: Location
+                Fp_cal[j][i] = mk_obsval(f.obsgraph, val, val) * f.sharing[j]
+
+                F_cal[j][i] = (
+                    g[j]
+                    .sharing[i]
+                    .__add__(
+                        Fp_cal[j][i],
+                        loc=Location("SplitRed", lineno=32, caller=callloc),
+                    )
+                )
+
+                Fpp[i].__iadd__(
+                    F_cal[j][i],
+                    loc=Location("SplitRed", lineno=34, caller=callloc),
+                )
+
+        Fpp_enc = f.copy(
+            sharing=Fpp,
+            secrets=dummy_secrets,
+        )
+        return Fp_enc, Fpp_enc, randoms
 
 class BgwMultGadget(Gadget[PolyEnc]):
     """
@@ -3641,6 +4032,75 @@ class PolyAESSbox(Gadget[PolyEnc]):
         return self.randoms
 
 
+class LaOlaPolyAESSbox(Gadget[PolyEnc]):
+    """
+    AES Sbox using Poly masking from https://doi.org/10.1007/978-3-319-06734-6_16.
+    """
+
+    def __init__(
+        self,
+        f: PolyEnc,
+        rc: count,
+        callloc: Optional[Location],
+    ):
+        assert isinstance(f, PolyEnc), f"{self.name()} requires PolyEnc input."
+        super().__init__([f], callloc)
+        d = f.d
+        self.d = d
+        self.randoms = set()
+        mk_loc = mk_loc_factory("PolySbox", callloc)
+
+        f2 = LaolaSquareGadget(f, d, rc, mk_loc(1, "f2= f * f"))
+        self.randoms.update(f2.randoms)
+        f4 = LaolaSquareGadget(f2.output(), d, rc, mk_loc(2, "f4= f2* f2"))
+        self.randoms.update(f4.randoms)
+        f5 = LaolaMultGadget(f4.output(), f, d, rc, mk_loc(3, "f5 = f4 * f"))
+        self.randoms.update(f5.randoms)
+
+        f25 = self.power_of_five(f5.output(), rc, mk_loc(4, "f25=f5 * f5 ^ 4"))
+        self.randoms.update(f25.randoms)
+
+        f125 = self.power_of_five(f25.output(), rc, mk_loc(4, "f125=f25 * f25 ^ 4"))
+        self.randoms.update(f125.randoms)
+
+        f127 = (LaolaMultGadget(
+            f125.output(), f2.output(), d, rc, mk_loc(4, "f252 = f240 * f12")))
+        self.randoms.update(f127.randoms)
+
+
+        f254 = LaolaSquareGadget(
+            f127.output(), d, rc, mk_loc(4, "f254 = f2 * f252")
+        )
+        self.randoms.update(f254.randoms)
+
+       
+        self.output_enc = f254.output()
+
+    @classmethod
+    def with_defaults(cls: Type[Self], d: int, k: int, e: int, F) -> Self:
+        n = d + e + 1
+
+        F_enc, rc = make_f_encodings(d, e, n, k, F)
+        instance = cls(f=F_enc, rc=rc, callloc=None)
+
+        return instance
+    
+    def power_of_five(self, g: PolyEnc, rc: count, mk_loc)-> LaolaMultGadget:
+        f_square = LaolaSquareGadget(g,d,rc, mk_loc)
+        self.randoms.update(f_square.randoms)
+        f_four = LaolaSquareGadget(f_square, d, rc, mk_loc)
+        self.randoms.update(f_four.randoms)
+        f_five = LaolaMultGadget(g, f_four, d, rc, mk_loc)
+        return f_five
+
+
+    def output(self) -> PolyEnc:
+        return self.output_enc
+
+    def random_vars(self) -> Set:
+        return self.randoms
+
+
 def functional_correctness_benchmarks(
     d: int, e: int, k: int, F: CommutativeRing
 ):
@@ -3699,6 +4159,7 @@ def functional_correctness_benchmarks(
 
     elapsed = time.perf_counter() - start
     print(f"Execution time: {elapsed} seconds")
+
 
 
 def verify_gadgets_NI(
